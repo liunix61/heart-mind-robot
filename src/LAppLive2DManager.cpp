@@ -216,3 +216,14 @@ void LAppLive2DManager::RobotControl(Csm::csmChar *motion_group, Csm::csmChar *e
         _models[0]->StartMotion("Idle", 0, PriorityForce, FinishedMotion, sound);
     }
 }
+
+void LAppLive2DManager::UpdateLipSyncAudio(const std::shared_ptr<QByteArray> &sound) {
+    if (_models.GetSize() != 1) {
+        CF_LOG_ERROR("model size is %d", _models.GetSize());
+        return;
+    }
+    if (sound && !sound->isEmpty()) {
+        CF_LOG_INFO("UpdateLipSyncAudio: Updating lip sync audio, size: %d bytes", sound->size());
+        _models[0]->UpdateLipSyncAudio(sound);
+    }
+}

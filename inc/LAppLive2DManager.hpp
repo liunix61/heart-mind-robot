@@ -101,6 +101,12 @@ public:
      * @param   sound WAV音频数据地址(如果有的话)
      */
     void RobotControl(Csm::csmChar *motion_group, Csm::csmChar *expression, const std::shared_ptr<QByteArray>& sound);
+    
+    /**
+     * @brief   只更新口型同步音频（不改变动作）
+     * @param   sound WAV音频数据
+     */
+    void UpdateLipSyncAudio(const std::shared_ptr<QByteArray>& sound);
 
 private:
     /**

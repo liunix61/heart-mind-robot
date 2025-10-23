@@ -613,3 +613,10 @@ Csm::csmBool LAppModel::MotionGroupExists(const Csm::csmChar *motion_group) cons
     }
     return false;
 }
+
+void LAppModel::UpdateLipSyncAudio(std::shared_ptr<QByteArray> sound) {
+    if (sound && !sound->isEmpty()) {
+        CF_LOG_DEBUG("UpdateLipSyncAudio: updating audio for lip sync, size: %d", sound->size());
+        _wavFileHandler.Start(sound);
+    }
+}

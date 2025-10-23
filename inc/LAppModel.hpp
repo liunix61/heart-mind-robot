@@ -127,6 +127,12 @@ public:
     Csm::csmBool ExpressionExists(const Csm::csmChar* expressionID) const;
 
     Csm::csmBool MotionGroupExists(const Csm::csmChar* motion_group) const;
+    
+    /**
+     * @brief 直接更新口型同步音频数据（不启动新动作）
+     * @param sound 音频数据
+     */
+    void UpdateLipSyncAudio(std::shared_ptr<QByteArray> sound);
 
 protected:
     /**

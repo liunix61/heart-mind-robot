@@ -19,6 +19,10 @@ public:
     void enqueueAudio(const QByteArray &audioData);
     void stopPlayback();
     
+signals:
+    // 当音频解码完成后发射，用于口型同步
+    void audioDecoded(const QByteArray &pcmData);
+    
 protected:
     void run() override;
     
@@ -32,9 +36,11 @@ private:
     void processAudioData(const QByteArray &audioData);
 };
 
-class AudioPlayer {
+class AudioPlayer : public QObject {
+    Q_OBJECT
+    
 public:
-    AudioPlayer();
+    AudioPlayer(QObject *parent = nullptr);
     ~AudioPlayer();
     
     void playAudio(const char *filePath);
@@ -42,6 +48,13 @@ public:
     
     // 新增：播放接收到的Opus编码音频数据 - 异步解码并播放
     void playReceivedAudioData(const QByteArray &audioData);
+    
+    // 获取音频播放线程（用于连接信号）
+    AudioPlaybackThread* getPlaybackThread() { return m_playbackThread; }
+
+signals:
+    // 转发解码后的音频数据
+    void audioDecoded(const QByteArray &pcmData);
 
 private:
     // 音频播放工作线程（包含Opus解码器）

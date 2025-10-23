@@ -104,7 +104,14 @@ private slots:
     void onStatusUpdateTimeout();
     void onHeartbeatTimeout();
 
+private slots:
+    // 音频解码完成处理
+    void onAudioDecoded(const QByteArray &pcmData);
+
 private:
+    // 音频流累积缓冲
+    QByteArray m_accumulatedPcmData;
+    QTimer *m_lipSyncTimer;
     // 核心组件
     DeskPetController *m_controller;
     MainWindow *m_mainWindow;
@@ -134,6 +141,9 @@ private:
     void handleBehaviorChange(PetBehavior behavior);
     void handleEmotionChange(const QString &emotion);
     void handleAnimationRequest(const QString &animationName);
+    
+    // 音频处理辅助方法
+    QByteArray convertPCMToWAV(const QByteArray &pcmData, int sampleRate = 24000, int channels = 1, int bitsPerSample = 16);
     
     // 调试和日志
     void logDebug(const QString &message);

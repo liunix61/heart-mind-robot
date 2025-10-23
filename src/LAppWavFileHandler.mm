@@ -231,6 +231,13 @@ void LAppWavFileHandler::Start(std::shared_ptr<QByteArray> &sound) {
         CF_LOG_ERROR("LoadWavFile failed, no sound data");
         return;
     }
-    _audioPlayer->playAudio((char *)sound->data(),sound->size());
-
+    
+    // 重要：重置播放状态，让Update()能正常计算RMS
+    _sampleOffset = 0;
+    _userTimeSeconds = 0.0f;
+    _lastRms = 0.0f;
+    
+    CF_LOG_INFO("LAppWavFileHandler: WAV loaded for lip sync, samples: %d, will NOT play audio", _wavFileInfo._samplesPerChannel);
+    // 注意：不调用 _audioPlayer->playAudio()，避免重复播放
+    // 实际的音频播放由外部的 AudioPlayer 负责
 }

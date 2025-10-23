@@ -4,6 +4,7 @@
 #include <QJsonObject>
 #include <QTimer>
 #include <QThread>
+#include <QDataStream>
 
 DeskPetIntegration::DeskPetIntegration(QObject *parent)
     : QObject(parent)
@@ -13,6 +14,7 @@ DeskPetIntegration::DeskPetIntegration(QObject *parent)
     , m_audioPlayer(nullptr)
     , m_statusUpdateTimer(nullptr)
     , m_heartbeatTimer(nullptr)
+    , m_lipSyncTimer(nullptr)
     , m_initialized(false)
     , m_connected(false)
 {
@@ -351,20 +353,28 @@ void DeskPetIntegration::playAudioData(const QByteArray &audioData)
         return;
     }
     
-    // 减少日志输出，避免影响性能
-    // qDebug() << "Playing audio:" << audioData.size() << "bytes";
+    qDebug() << "=== playAudioData called:" << audioData.size() << "bytes (Opus encoded)";
     
-    // 使用AudioPlayer播放接收到的音频数据
+    // 使用AudioPlayer播放接收到的Opus编码音频数据
+    // AudioPlayer会解码并播放，同时通过信号发射解码后的PCM数据用于口型同步
     if (m_audioPlayer) {
+        qDebug() << "Sending audio to player for decoding and playback";
         m_audioPlayer->playReceivedAudioData(audioData);
     } else {
-        qWarning() << "AudioPlayer not initialized";
+        qWarning() << "AudioPlayer not initialized!";
     }
 }
 
 void DeskPetIntegration::setupConnections()
 {
     if (!m_controller) return;
+    
+    // 连接音频播放器信号 - 用于口型同步
+    if (m_audioPlayer) {
+        connect(m_audioPlayer, &AudioPlayer::audioDecoded,
+                this, &DeskPetIntegration::onAudioDecoded);
+        qDebug() << "Audio player signal connected for lip sync";
+    }
     
     // 连接控制器信号
     connect(m_controller, &DeskPetController::connected, this, &DeskPetIntegration::onControllerConnected);
@@ -521,7 +531,10 @@ void DeskPetIntegration::onControllerMessageReceived(const QString &message)
 
 void DeskPetIntegration::onControllerAudioReceived(const QByteArray &audioData)
 {
-    qDebug() << "Audio received, size:" << audioData.size();
+    qDebug() << "========================================";
+    qDebug() << "=== Audio received from WebSocket!";
+    qDebug() << "=== Size:" << audioData.size() << "bytes";
+    qDebug() << "========================================";
     
     // 播放接收到的音频数据
     playAudioData(audioData);
@@ -569,4 +582,76 @@ void DeskPetIntegration::onHeartbeatTimeout()
         qDebug() << "Sending heartbeat";
         // 这里可以发送心跳消息
     }
+}
+
+void DeskPetIntegration::onAudioDecoded(const QByteArray &pcmData)
+{
+    if (pcmData.isEmpty() || !m_live2DManager) {
+        return;
+    }
+    
+    qDebug() << "=== onAudioDecoded: PCM size:" << pcmData.size() << "bytes";
+    
+    // 累积PCM数据（支持流式音频）
+    m_accumulatedPcmData.append(pcmData);
+    
+    // 流式更新策略：每收到一定量的数据就更新一次（不等待太久）
+    // 24000 Hz * 1 channel * 2 bytes = 48000 bytes/秒
+    // 每 0.1 秒更新一次，保持口型同步流畅
+    const int updateIntervalSamples = 2400; // 0.1秒的音频
+    const int updateIntervalBytes = updateIntervalSamples * 2; // 16-bit PCM
+    
+    if (m_accumulatedPcmData.size() >= updateIntervalBytes) {
+        qDebug() << "=== Updating lip sync with" << m_accumulatedPcmData.size() << "bytes PCM";
+        
+        // 转换为WAV格式
+        QByteArray wavData = convertPCMToWAV(m_accumulatedPcmData, 24000, 1, 16);
+        if (!wavData.isEmpty()) {
+            std::shared_ptr<QByteArray> soundData = std::make_shared<QByteArray>(wavData);
+            m_live2DManager->UpdateLipSyncAudio(soundData);
+            qDebug() << "✓ Lip sync updated!";
+        }
+        
+        // 清空累积的数据，准备下一批
+        m_accumulatedPcmData.clear();
+    }
+}
+
+QByteArray DeskPetIntegration::convertPCMToWAV(const QByteArray &pcmData, int sampleRate, int channels, int bitsPerSample)
+{
+    if (pcmData.isEmpty()) {
+        return QByteArray();
+    }
+    
+    QByteArray wavData;
+    QDataStream stream(&wavData, QIODevice::WriteOnly);
+    stream.setByteOrder(QDataStream::LittleEndian);
+    
+    int bytesPerSample = bitsPerSample / 8;
+    int byteRate = sampleRate * channels * bytesPerSample;
+    int blockAlign = channels * bytesPerSample;
+    int dataSize = pcmData.size();
+    int fileSize = 36 + dataSize;
+    
+    // RIFF header
+    stream.writeRawData("RIFF", 4);
+    stream << (quint32)fileSize;
+    stream.writeRawData("WAVE", 4);
+    
+    // fmt chunk
+    stream.writeRawData("fmt ", 4);
+    stream << (quint32)16;              // fmt chunk size
+    stream << (quint16)1;               // audio format (1 = PCM)
+    stream << (quint16)channels;        // number of channels
+    stream << (quint32)sampleRate;      // sample rate
+    stream << (quint32)byteRate;        // byte rate
+    stream << (quint16)blockAlign;      // block align
+    stream << (quint16)bitsPerSample;   // bits per sample
+    
+    // data chunk
+    stream.writeRawData("data", 4);
+    stream << (quint32)dataSize;
+    stream.writeRawData(pcmData.constData(), dataSize);
+    
+    return wavData;
 }

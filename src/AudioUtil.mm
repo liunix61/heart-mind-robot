@@ -218,6 +218,8 @@ void AudioPlaybackThread::run() {
 }
 
 void AudioPlaybackThread::processAudioData(const QByteArray &audioData) {
+    CF_LOG_INFO("AudioPlaybackThread: Processing %d bytes of Opus data", audioData.size());
+    
     if (!m_opusDecoder || !m_opusDecoder->isInitialized() || !m_audioEngineManager) {
         CF_LOG_ERROR("AudioPlaybackThread: Decoder or audio engine not initialized");
         return;
@@ -230,6 +232,8 @@ void AudioPlaybackThread::processAudioData(const QByteArray &audioData) {
         return;
     }
     
+    CF_LOG_INFO("AudioPlaybackThread: Successfully decoded to %d bytes PCM", pcmData.size());
+    
     // 将PCM数据加入播放队列
     @autoreleasepool {
         NSData *nsData = [NSData dataWithBytes:pcmData.constData() length:pcmData.size()];
@@ -237,16 +241,25 @@ void AudioPlaybackThread::processAudioData(const QByteArray &audioData) {
         [manager enqueuePCMData:nsData];
     }
     
+    // 发射信号，用于口型同步
+    CF_LOG_INFO("AudioPlaybackThread: Emitting audioDecoded signal for lip sync");
+    emit audioDecoded(pcmData);
+    
     CF_LOG_DEBUG("AudioPlaybackThread: Enqueued PCM data, size: %d bytes", pcmData.size());
 }
 
-AudioPlayer::AudioPlayer() 
-    : m_playbackThread(nullptr)
+AudioPlayer::AudioPlayer(QObject *parent) 
+    : QObject(parent)
+    , m_playbackThread(nullptr)
     , audioPlayer(nil) 
 {
     // 创建并启动音频播放线程（包含Opus解码器）
-    m_playbackThread = new AudioPlaybackThread();
+    m_playbackThread = new AudioPlaybackThread(this);
     m_playbackThread->start();
+    
+    // 连接信号，转发解码后的音频数据
+    connect(m_playbackThread, &AudioPlaybackThread::audioDecoded,
+            this, &AudioPlayer::audioDecoded);
     CF_LOG_INFO("AudioPlayer initialized");
 }
 
