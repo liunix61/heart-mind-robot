@@ -358,7 +358,6 @@ void DeskPetIntegration::playAudioData(const QByteArray &audioData)
     // 使用AudioPlayer播放接收到的Opus编码音频数据
     // AudioPlayer会解码并播放，同时通过信号发射解码后的PCM数据用于口型同步
     if (m_audioPlayer) {
-        qDebug() << "Sending audio to player for decoding and playback";
         m_audioPlayer->playReceivedAudioData(audioData);
     } else {
         qWarning() << "AudioPlayer not initialized!";
@@ -586,35 +585,27 @@ void DeskPetIntegration::onHeartbeatTimeout()
 
 void DeskPetIntegration::onAudioDecoded(const QByteArray &pcmData)
 {
-    if (pcmData.isEmpty() || !m_live2DManager) {
+    qDebug() << "======================================";
+    qDebug() << "onAudioDecoded CALLED!";
+    qDebug() << "PCM size:" << pcmData.size();
+    qDebug() << "Live2D manager:" << (m_live2DManager ? "OK" : "NULL");
+    qDebug() << "======================================";
+    
+    if (pcmData.isEmpty()) {
+        qWarning() << "PCM data is empty!";
         return;
     }
     
-    qDebug() << "=== onAudioDecoded: PCM size:" << pcmData.size() << "bytes";
-    
-    // 累积PCM数据（支持流式音频）
-    m_accumulatedPcmData.append(pcmData);
-    
-    // 流式更新策略：每收到一定量的数据就更新一次（不等待太久）
-    // 24000 Hz * 1 channel * 2 bytes = 48000 bytes/秒
-    // 每 0.1 秒更新一次，保持口型同步流畅
-    const int updateIntervalSamples = 2400; // 0.1秒的音频
-    const int updateIntervalBytes = updateIntervalSamples * 2; // 16-bit PCM
-    
-    if (m_accumulatedPcmData.size() >= updateIntervalBytes) {
-        qDebug() << "=== Updating lip sync with" << m_accumulatedPcmData.size() << "bytes PCM";
-        
-        // 转换为WAV格式
-        QByteArray wavData = convertPCMToWAV(m_accumulatedPcmData, 24000, 1, 16);
-        if (!wavData.isEmpty()) {
-            std::shared_ptr<QByteArray> soundData = std::make_shared<QByteArray>(wavData);
-            m_live2DManager->UpdateLipSyncAudio(soundData);
-            qDebug() << "✓ Lip sync updated!";
-        }
-        
-        // 清空累积的数据，准备下一批
-        m_accumulatedPcmData.clear();
+    if (!m_live2DManager) {
+        qWarning() << "Live2D manager is NULL!";
+        return;
     }
+    
+    // 直接使用PCM数据更新口型，支持真正的流式输入
+    // 每次收到的音频片段都会实时计算RMS并更新口型参数
+    m_live2DManager->UpdateLipSyncFromPCM(pcmData, 24000);
+    
+    qDebug() << "✓✓✓ Lip sync update called successfully!";
 }
 
 QByteArray DeskPetIntegration::convertPCMToWAV(const QByteArray &pcmData, int sampleRate, int channels, int bitsPerSample)

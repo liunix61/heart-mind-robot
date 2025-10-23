@@ -227,3 +227,13 @@ void LAppLive2DManager::UpdateLipSyncAudio(const std::shared_ptr<QByteArray> &so
         _models[0]->UpdateLipSyncAudio(sound);
     }
 }
+
+void LAppLive2DManager::UpdateLipSyncFromPCM(const QByteArray& pcmData, int sampleRate) {
+    if (_models.GetSize() != 1) {
+        CF_LOG_ERROR("model size is %d", _models.GetSize());
+        return;
+    }
+    if (!pcmData.isEmpty()) {
+        _models[0]->UpdateLipSyncFromPCM(pcmData, sampleRate);
+    }
+}

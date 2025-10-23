@@ -363,15 +363,10 @@ void LAppModel::Update() {
 
     // 设置唇同步
     if (_lipSync) {
-        // 如果要实时进行嘴唇同步，需要从系统中获取音量并以0〜1的范围输入值。
-        // 这里是通过一个LAPPWAVFileHandler类的成员变量来获取和管理音量。
-        csmFloat32 value = 0.0f;
-
-        // 状態更新/RMS値取得
-        _wavFileHandler.Update(deltaTimeSeconds);
-        value = _wavFileHandler.GetRms();
+        // 使用从PCM数据实时计算的RMS值（通过 UpdateLipSyncFromPCM 更新）
+        // _lastLipSyncValue 在每次音频解码时更新
         for (csmUint32 i = 0; i < _lipSyncIds.GetSize(); ++i) {
-            _model->AddParameterValue(_lipSyncIds[i], value, 1000);
+            _model->AddParameterValue(_lipSyncIds[i], _lastLipSyncValue, 0.8f);
         }
     }
 
@@ -619,4 +614,57 @@ void LAppModel::UpdateLipSyncAudio(std::shared_ptr<QByteArray> sound) {
         CF_LOG_DEBUG("UpdateLipSyncAudio: updating audio for lip sync, size: %d", sound->size());
         _wavFileHandler.Start(sound);
     }
+}
+
+void LAppModel::UpdateLipSyncFromPCM(const QByteArray &pcmData, int sampleRate) {
+    CF_LOG_INFO("========== UpdateLipSyncFromPCM START ==========");
+    CF_LOG_INFO("PCM data size: %d bytes", pcmData.size());
+    CF_LOG_INFO("Lip sync IDs count: %d", _lipSyncIds.GetSize());
+    CF_LOG_INFO("_lipSync flag: %d", _lipSync);
+    
+    if (pcmData.isEmpty()) {
+        CF_LOG_ERROR("UpdateLipSyncFromPCM: PCM data is EMPTY!");
+        return;
+    }
+    
+    if (_lipSyncIds.GetSize() == 0) {
+        CF_LOG_ERROR("UpdateLipSyncFromPCM: NO lip sync IDs configured!");
+        return;
+    }
+    
+    // 直接从PCM数据计算RMS
+    const int16_t* samples = reinterpret_cast<const int16_t*>(pcmData.constData());
+    int sampleCount = pcmData.size() / sizeof(int16_t);
+    
+    // 调试：打印前10个样本的值
+    CF_LOG_INFO("First 10 samples:");
+    for (int i = 0; i < std::min(10, sampleCount); i++) {
+        CF_LOG_INFO("  sample[%d] = %d", i, samples[i]);
+    }
+    
+    // 计算RMS（均方根）
+    float sum = 0.0f;
+    int16_t maxSample = 0;
+    int16_t minSample = 0;
+    for (int i = 0; i < sampleCount; i++) {
+        maxSample = std::max(maxSample, samples[i]);
+        minSample = std::min(minSample, samples[i]);
+        float normalized = samples[i] / 32768.0f; // 归一化到 -1.0 ~ 1.0
+        sum += normalized * normalized;
+    }
+    float rms = sqrt(sum / sampleCount);
+    
+    CF_LOG_INFO("Sample range: [%d, %d]", minSample, maxSample);
+    CF_LOG_INFO("Raw RMS before amplification: %.6f", rms);
+    
+    // 放大RMS值，使口型变化更明显
+    rms = std::min(rms * 8.0f, 1.0f); // 放大8倍，更明显
+    
+    CF_LOG_INFO("Calculated RMS after amplification: %.4f (from %d samples)", rms, sampleCount);
+    
+    // 保存RMS值到 _lastLipSyncValue，它会在 Update() 中被应用
+    _lastLipSyncValue = rms;
+    
+    CF_LOG_INFO("Saved RMS to _lastLipSyncValue: %.4f", _lastLipSyncValue);
+    CF_LOG_INFO("========== UpdateLipSyncFromPCM END ==========");
 }

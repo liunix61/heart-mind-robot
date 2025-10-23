@@ -242,7 +242,10 @@ void AudioPlaybackThread::processAudioData(const QByteArray &audioData) {
     }
     
     // 发射信号，用于口型同步
-    CF_LOG_INFO("AudioPlaybackThread: Emitting audioDecoded signal for lip sync");
+    CF_LOG_INFO("========================================");
+    CF_LOG_INFO("AudioPlaybackThread: EMITTING audioDecoded signal!");
+    CF_LOG_INFO("PCM size: %d bytes", pcmData.size());
+    CF_LOG_INFO("========================================");
     emit audioDecoded(pcmData);
     
     CF_LOG_DEBUG("AudioPlaybackThread: Enqueued PCM data, size: %d bytes", pcmData.size());

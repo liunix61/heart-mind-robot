@@ -107,6 +107,13 @@ public:
      * @param   sound WAV音频数据
      */
     void UpdateLipSyncAudio(const std::shared_ptr<QByteArray>& sound);
+    
+    /**
+     * @brief   从PCM数据更新口型（流式输入）
+     * @param   pcmData PCM音频数据
+     * @param   sampleRate 采样率
+     */
+    void UpdateLipSyncFromPCM(const QByteArray& pcmData, int sampleRate);
 
 private:
     /**

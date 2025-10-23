@@ -133,6 +133,13 @@ public:
      * @param sound 音频数据
      */
     void UpdateLipSyncAudio(std::shared_ptr<QByteArray> sound);
+    
+    /**
+     * @brief 直接从PCM数据更新口型参数（流式输入）
+     * @param pcmData PCM音频数据（16-bit）
+     * @param sampleRate 采样率
+     */
+    void UpdateLipSyncFromPCM(const QByteArray &pcmData, int sampleRate);
 
 protected:
     /**

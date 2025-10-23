@@ -64,6 +64,9 @@ QByteArray OpusDecoder::decode(const QByteArray &opusData)
     QByteArray pcmData(maxSamples * sizeof(opus_int16), 0);
     opus_int16 *pcmBuffer = reinterpret_cast<opus_int16*>(pcmData.data());
     
+    CF_LOG_INFO(">>> OpusDecoder: decoding %d bytes of Opus data", opusData.size());
+    CF_LOG_INFO(">>> Max frame size: %d, max samples: %d", maxFrameSize, maxSamples);
+    
     // 解码Opus数据
     int decodedSamples = opus_decode(
         m_decoder,
@@ -79,9 +82,17 @@ QByteArray OpusDecoder::decode(const QByteArray &opusData)
         return QByteArray();
     }
     
+    CF_LOG_INFO(">>> Opus decoded %d samples successfully", decodedSamples);
+    
+    // 检查前10个样本
+    CF_LOG_INFO(">>> First 10 PCM samples after decode:");
+    for (int i = 0; i < std::min(10, decodedSamples); i++) {
+        CF_LOG_INFO(">>>   pcm[%d] = %d", i, pcmBuffer[i]);
+    }
+    
     // 调整PCM数据大小
     pcmData.resize(decodedSamples * m_channels * sizeof(opus_int16));
     
-    CF_LOG_DEBUG("Opus decoded: %d samples, %d bytes PCM", decodedSamples, pcmData.size());
+    CF_LOG_INFO(">>> Final PCM data size: %d bytes", pcmData.size());
     return pcmData;
 }
