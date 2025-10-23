@@ -1,44 +1,43 @@
-# Prerequisites
-*.d
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+ehthumbs.db
+Thumbs.db
 
-# Compiled Object files
-*.slo
-*.lo
-*.o
-*.obj
+# CLion
+.idea/
+*.iml
+.idea_modules/
+cmake-build-*/
+CMakeLists.txt.user
 
-# Precompiled Headers
-*.gch
-*.pch
+# Build and compiled files
+build/
+bin/
+lib/
+out/
 
-# Linker files
-*.ilk
-
-# Debugger Files
+# C/C++ specific
+*.suo
+*.user
+*.sdf
+*.suo
+*.ncb
+*.sln
+*.suo
+*.user
 *.pdb
-
-# Compiled Dynamic libraries
-*.so
-*.dylib
-*.dll
-
-# Fortran module files
-*.mod
-*.smod
-
-# Compiled Static libraries
-*.lai
-*.la
-*.a
-*.lib
-
-# Executables
-*.exe
+*.db
+*.idb
+*.obj
+*.o
+*.swp
 *.out
 *.app
+Resources
 
-# debug information files
-*.dwo
 
 cache/
 build/

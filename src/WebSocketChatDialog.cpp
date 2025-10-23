@@ -20,6 +20,8 @@ WebSocketChatDialog::WebSocketChatDialog(QWidget *parent) : QDialog(parent) {
     
     m_deskPetIntegration = nullptr;
     m_connected = false;
+    m_isRecording = false;
+    m_audioInputManager = std::make_unique<AudioInputManager>();
     
     // 创建 QVBoxLayout 用于放置 QTextEdit 控件
     auto *layout = new QVBoxLayout(this);
@@ -61,7 +63,9 @@ WebSocketChatDialog::WebSocketChatDialog(QWidget *parent) : QDialog(parent) {
     );
 
     inputLayout->addWidget(inputLine);
+    
     sendButton = new QPushButton("Send", this);
+    sendButton->setFixedHeight(34);
     // 美化按钮
     sendButton->setStyleSheet(
             "QPushButton {"
@@ -78,23 +82,53 @@ WebSocketChatDialog::WebSocketChatDialog(QWidget *parent) : QDialog(parent) {
             "    background-color: #304974;"
             "}"
     );
-
     inputLayout->addWidget(sendButton);
+    
+    // 语音输入按钮
+    voiceButton = new QPushButton("🎤", this);
+    voiceButton->setFixedSize(34, 34);
+    voiceButton->setStyleSheet(
+            "QPushButton {"
+            "    background-color: #4CAF50;"
+            "    color: white;"
+            "    border: 1px solid #4CAF50;"
+            "    border-radius: 5px;"
+            "    padding: 0px;"
+            "    font-size: 16px;"
+            "}"
+            "QPushButton:hover {"
+            "    background-color: #45A049;"
+            "}"
+            "QPushButton:pressed {"
+            "    background-color: #E53935;"
+            "}"
+    );
+    inputLayout->addWidget(voiceButton);
     layout->addLayout(inputLayout);
     setLayout(layout);
     
     // 连接信号槽
     connect(sendButton, &QPushButton::clicked, this, &WebSocketChatDialog::sendMessage);
     connect(inputLine, &QLineEdit::returnPressed, this, &WebSocketChatDialog::sendMessage);
+    connect(voiceButton, &QPushButton::clicked, this, &WebSocketChatDialog::toggleVoiceInput);
+    
+    // 设置音频输入
+    setupAudioInput();
     
     // 设置初始状态
     updateConnectionStatus();
 }
 
 WebSocketChatDialog::~WebSocketChatDialog() {
+    // 停止录音
+    if (m_audioInputManager) {
+        m_audioInputManager->stopRecording();
+    }
+    
     delete textEdit;
     delete inputLine;
     delete sendButton;
+    delete voiceButton;
 }
 
 void WebSocketChatDialog::setDeskPetIntegration(DeskPetIntegration *integration) {
@@ -217,6 +251,7 @@ void WebSocketChatDialog::updateConnectionStatus() {
                 "    padding: 5px 10px;"
                 "}"
         );
+        voiceButton->setEnabled(true);
     } else {
         sendButton->setText("Send (未连接)");
         sendButton->setStyleSheet(
@@ -228,7 +263,117 @@ void WebSocketChatDialog::updateConnectionStatus() {
                 "    padding: 5px 10px;"
                 "}"
         );
+        voiceButton->setEnabled(false);
     }
 }
 
-#include "WebSocketChatDialog.moc"
+void WebSocketChatDialog::setupAudioInput() {
+    if (!m_audioInputManager) {
+        qWarning() << "WebSocketChatDialog: audio input manager is null";
+        return;
+    }
+    
+    // 初始化音频输入管理器（16kHz, 单声道, 20ms帧）
+    qDebug() << "WebSocketChatDialog: initializing audio input manager...";
+    if (!m_audioInputManager->initialize(16000, 1, 20)) {
+        qWarning() << "WebSocketChatDialog: Failed to initialize audio input manager";
+        voiceButton->setEnabled(false);
+        return;
+    }
+    
+    // 连接信号
+    qDebug() << "WebSocketChatDialog: connecting audio signals...";
+    connect(m_audioInputManager.get(), &AudioInputManager::audioDataEncoded,
+            this, &WebSocketChatDialog::onAudioDataEncoded);
+    connect(m_audioInputManager.get(), &AudioInputManager::recordingStateChanged,
+            this, &WebSocketChatDialog::onRecordingStateChanged);
+    connect(m_audioInputManager.get(), &AudioInputManager::errorOccurred,
+            this, &WebSocketChatDialog::onAudioError);
+    
+    // 配置WebRTC处理
+    qDebug() << "WebSocketChatDialog: configuring WebRTC...";
+    m_audioInputManager->configureWebRTC(false, true, true); // AEC关闭, NS开启, HighPass开启
+    m_audioInputManager->setWebRTCEnabled(true);
+    
+    qDebug() << "WebSocketChatDialog: Audio input setup completed";
+}
+
+void WebSocketChatDialog::toggleVoiceInput() {
+    if (!m_audioInputManager) {
+        return;
+    }
+    
+    if (m_isRecording) {
+        // 停止录音
+        m_audioInputManager->stopRecording();
+        qDebug() << "Voice input stopped";
+    } else {
+        // 开始录音
+        if (!m_audioInputManager->startRecording()) {
+            textEdit->append("Bot:\n 无法开始录音，请检查麦克风权限");
+            qWarning() << "Failed to start recording";
+            return;
+        }
+        textEdit->append("You:\n [正在录音...]");
+        qDebug() << "Voice input started";
+    }
+}
+
+void WebSocketChatDialog::onAudioDataEncoded(const QByteArray& encodedData) {
+    if (!m_connected || !m_deskPetIntegration) {
+        qWarning() << "Cannot send audio: not connected";
+        return;
+    }
+    
+    // 发送音频数据到服务器
+    if (m_deskPetIntegration && m_deskPetIntegration->isConnected()) {
+        // 通过WebSocket发送二进制音频数据
+        m_deskPetIntegration->sendAudioData(encodedData);
+        qDebug() << "Sent audio data:" << encodedData.size() << "bytes";
+    }
+}
+
+void WebSocketChatDialog::onRecordingStateChanged(bool isRecording) {
+    m_isRecording = isRecording;
+    updateVoiceButtonState();
+    
+    if (!isRecording) {
+        textEdit->append("You:\n [录音结束]");
+    }
+}
+
+void WebSocketChatDialog::onAudioError(const QString& error) {
+    textEdit->append("Bot:\n 音频错误: " + error);
+    qWarning() << "Audio error:" << error;
+}
+
+void WebSocketChatDialog::updateVoiceButtonState() {
+    if (m_isRecording) {
+        voiceButton->setText("⏹");
+        voiceButton->setStyleSheet(
+                "QPushButton {"
+                "    background-color: #E53935;"
+                "    color: white;"
+                "    border: 1px solid #E53935;"
+                "    border-radius: 5px;"
+                "    padding: 5px;"
+                "    font-size: 16px;"
+                "}"
+        );
+    } else {
+        voiceButton->setText("🎤");
+        voiceButton->setStyleSheet(
+                "QPushButton {"
+                "    background-color: #4CAF50;"
+                "    color: white;"
+                "    border: 1px solid #4CAF50;"
+                "    border-radius: 5px;"
+                "    padding: 5px;"
+                "    font-size: 16px;"
+                "}"
+                "QPushButton:hover {"
+                "    background-color: #45A049;"
+                "}"
+        );
+    }
+}

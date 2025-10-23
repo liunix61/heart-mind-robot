@@ -213,6 +213,17 @@ void DeskPetIntegration::sendVoiceMessage(const QByteArray &audioData)
     m_controller->sendAudioMessage(audioData);
 }
 
+void DeskPetIntegration::sendAudioData(const QByteArray &audioData)
+{
+    if (!isConnected()) {
+        qWarning() << "Not connected to server, cannot send audio data";
+        return;
+    }
+    
+    // 直接发送音频流数据（已编码的Opus数据）
+    m_controller->sendAudioMessage(audioData);
+}
+
 void DeskPetIntegration::abortSpeaking()
 {
     qDebug() << "Aborting speaking...";

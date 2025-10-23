@@ -15,7 +15,9 @@
 #include <QObject>
 #include <QScrollArea>
 #include <QScrollBar>
+#include <memory>
 #include "resource_loader.hpp"
+#include "AudioInputManager.hpp"
 
 class DeskPetIntegration;
 
@@ -31,6 +33,10 @@ public:
 
 private slots:
     void sendMessage();
+    void toggleVoiceInput();
+    void onAudioDataEncoded(const QByteArray& encodedData);
+    void onRecordingStateChanged(bool isRecording);
+    void onAudioError(const QString& error);
     void onWebSocketConnected();
     void onWebSocketDisconnected();
     void onWebSocketError(const QString &error);
@@ -43,12 +49,19 @@ private slots:
 private:
     QLineEdit *inputLine;
     QPushButton *sendButton;
+    QPushButton *voiceButton;
     QTextEdit *textEdit;
     DeskPetIntegration *m_deskPetIntegration;
     bool m_connected;
     
+    // 音频输入管理器
+    std::unique_ptr<AudioInputManager> m_audioInputManager;
+    bool m_isRecording;
+    
     void updateConnectionStatus();
     void setupConnections();
+    void setupAudioInput();
+    void updateVoiceButtonState();
 };
 
 #endif // WEBSOCKETCHATDIALOG_H

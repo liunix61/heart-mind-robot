@@ -34,6 +34,7 @@ public:
     void stopListening();
     void sendTextMessage(const QString &text);
     void sendVoiceMessage(const QByteArray &audioData);
+    void sendAudioData(const QByteArray &audioData);  // 发送音频流数据
     void abortSpeaking();
     
     // 状态查询

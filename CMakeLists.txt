@@ -6,7 +6,7 @@ set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 cmake_policy(SET CMP0079 NEW)
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
@@ -90,6 +90,16 @@ set(COMMON_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/DeskPetWebSocketExample.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/WebSocketChatDialog.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/OpusDecoder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/OpusEncoder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/inc/OpusEncoder.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/WebRTCAudioProcessor.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/AudioInputManager.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/inc/AudioInputManager.hpp
+)
+
+# macOS特定源文件（需要Objective-C++）
+set(MACOS_SPECIFIC_SOURCES
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/AudioPermission.mm
 )
 
 # 平台特定的源文件
@@ -104,6 +114,7 @@ if(WIN32)
 elseif(APPLE)
     # macOS 平台使用原有的 .mm 文件
     set(PLATFORM_SOURCES ${COMMON_SOURCES}
+        ${MACOS_SPECIFIC_SOURCES}
         ${CMAKE_CURRENT_SOURCE_DIR}/src/LAppWavFileHandler.mm
         ${CMAKE_CURRENT_SOURCE_DIR}/src/main.mm
         ${CMAKE_CURRENT_SOURCE_DIR}/src/mainwindow.mm
@@ -112,25 +123,25 @@ elseif(APPLE)
     )
 endif()
 
-add_executable(ChatFriend ${PLATFORM_SOURCES})
+if(APPLE)
+    add_executable(ChatFriend MACOSX_BUNDLE ${PLATFORM_SOURCES})
+    set_target_properties(ChatFriend PROPERTIES
+        MACOSX_BUNDLE TRUE
+        MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/Info.plist
+        RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+    )
+else()
+    add_executable(ChatFriend ${PLATFORM_SOURCES})
+    set_target_properties(ChatFriend PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+endif()
+
 add_subdirectory(src)
-set_target_properties(ChatFriend PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
 if(WIN32)
     target_link_libraries(ChatFriend PRIVATE Qt6::Widgets Qt6::OpenGL glew_s Framework Qt6::OpenGLWidgets glfw Qt6::Network Qt6::WebSockets Qt6::Multimedia winmm opus)
 elseif(APPLE)
     target_link_libraries(ChatFriend PRIVATE Qt6::Widgets Qt6::OpenGL glew_s Framework Qt6::OpenGLWidgets "-framework Cocoa -framework AVFoundation" glfw Qt6::Network Qt6::WebSockets Qt6::Multimedia opus)
 endif()
-# 设置编译选项，使得 Qt 库以静态链接方式链接
-#target_compile_options(ChatFriend PRIVATE -static-libgcc -static-libstdc++)\
-#打包
-#set_target_properties(ChatFriend PROPERTIES
-#        MACOSX_BUNDLE TRUE
-#)
-#
-#install(TARGETS ChatFriend
-#        BUNDLE DESTINATION . COMPONENT Runtime
-#        RUNTIME DESTINATION bin COMPONENT Runtime
-#)
 #执行alias alias otool='/usr/bin/otool'
 #alias install_name_tool='/usr/bin/install_name_tool'
 #sudo macdeployqt /path/to/ChatFriend.app 千万不要修改bash_profile中的路径（不明原因无法执行与anaconda3有关）
