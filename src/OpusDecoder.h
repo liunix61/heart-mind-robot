@@ -29,7 +29,7 @@ public:
     int getChannels() const { return m_channels; }
 
 private:
-    OpusDecoder *m_decoder;
+    ::OpusDecoder *m_decoder;  // opus库的解码器类型，使用::前缀避免与类名冲突
     int m_sampleRate;
     int m_channels;
     bool m_initialized;

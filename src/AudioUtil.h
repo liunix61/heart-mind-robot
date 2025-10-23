@@ -27,6 +27,7 @@ private:
     QMutex m_queueMutex;
     volatile bool m_running;
     OpusDecoder *m_opusDecoder;
+    void *m_audioEngineManager;  // AudioEngineManager* (macOS特定)
     
     void processAudioData(const QByteArray &audioData);
 };
@@ -39,14 +40,11 @@ public:
     void playAudio(const char *filePath);
     void playAudio(const char *audioData, size_t dataSize);
     
-    // 新增：播放接收到的音频数据（支持Opus格式）- 异步处理
+    // 新增：播放接收到的Opus编码音频数据 - 异步解码并播放
     void playReceivedAudioData(const QByteArray &audioData);
 
 private:
-    // Opus解码器
-    OpusDecoder *m_opusDecoder;
-    
-    // 音频播放工作线程
+    // 音频播放工作线程（包含Opus解码器）
     AudioPlaybackThread *m_playbackThread;
     
     // 平台特定的成员变量
