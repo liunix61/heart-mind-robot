@@ -4,7 +4,32 @@
 #include "Log_util.h"
 #include "platform_config.h"
 #include <QByteArray>
+#include <QThread>
+#include <QMutex>
+#include <QQueue>
 #include "OpusDecoder.h"
+
+// 音频播放工作线程
+class AudioPlaybackThread : public QThread {
+    Q_OBJECT
+public:
+    AudioPlaybackThread(QObject *parent = nullptr);
+    ~AudioPlaybackThread();
+    
+    void enqueueAudio(const QByteArray &audioData);
+    void stopPlayback();
+    
+protected:
+    void run() override;
+    
+private:
+    QQueue<QByteArray> m_audioQueue;
+    QMutex m_queueMutex;
+    volatile bool m_running;
+    OpusDecoder *m_opusDecoder;
+    
+    void processAudioData(const QByteArray &audioData);
+};
 
 class AudioPlayer {
 public:
@@ -14,12 +39,15 @@ public:
     void playAudio(const char *filePath);
     void playAudio(const char *audioData, size_t dataSize);
     
-    // 新增：播放接收到的音频数据（支持Opus格式）
+    // 新增：播放接收到的音频数据（支持Opus格式）- 异步处理
     void playReceivedAudioData(const QByteArray &audioData);
 
 private:
     // Opus解码器
     OpusDecoder *m_opusDecoder;
+    
+    // 音频播放工作线程
+    AudioPlaybackThread *m_playbackThread;
     
     // 平台特定的成员变量
     MACOS_SPECIFIC(

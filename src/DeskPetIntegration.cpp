@@ -337,18 +337,17 @@ void DeskPetIntegration::processVoiceInput(const QByteArray &audioData)
 void DeskPetIntegration::playAudioData(const QByteArray &audioData)
 {
     if (audioData.isEmpty()) {
-        qDebug() << "Empty audio data, skipping playback";
         return;
     }
     
-    qDebug() << "DeskPetIntegration: Playing audio data, size:" << audioData.size() << "bytes";
+    // 减少日志输出，避免影响性能
+    // qDebug() << "Playing audio:" << audioData.size() << "bytes";
     
     // 使用AudioPlayer播放接收到的音频数据
     if (m_audioPlayer) {
         m_audioPlayer->playReceivedAudioData(audioData);
-        qDebug() << "Audio playback started successfully";
     } else {
-        qWarning() << "AudioPlayer not initialized, cannot play audio";
+        qWarning() << "AudioPlayer not initialized";
     }
 }
 

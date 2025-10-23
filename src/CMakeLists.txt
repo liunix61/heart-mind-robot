@@ -29,4 +29,14 @@ target_sources(ChatFriend
         ${CMAKE_CURRENT_SOURCE_DIR}/ChatDialog.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/MouseEvent.mm
         ${CMAKE_CURRENT_SOURCE_DIR}/MouseEvent.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/AsyncMessageQueue.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/AsyncMessageQueue.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/ConversationWorker.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/ConversationWorker.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/ThreadSafeUIUpdater.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/ThreadSafeUIUpdater.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/AsyncStateManager.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/AsyncStateManager.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/AsyncIntegrationExample.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/AsyncIntegrationExample.cpp
   )

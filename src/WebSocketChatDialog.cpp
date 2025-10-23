@@ -185,12 +185,10 @@ void WebSocketChatDialog::onBotReplyTextMessage(const QString &text) {
 }
 
 void WebSocketChatDialog::onBotReplyAudioData(const QByteArray &audioData) {
-    // 直接播放音频数据，不显示在对话框中
-    if (m_deskPetIntegration) {
-        // 使用DeskPetIntegration的音频播放功能
-        qDebug() << "WebSocketChatDialog: Delegating audio playback, size:" << audioData.size() << "bytes";
-        m_deskPetIntegration->playAudioData(audioData);
-    }
+    // 音频已经在DeskPetIntegration中播放了，这里不需要再播放，避免重复
+    // 只记录日志即可
+    qDebug() << "WebSocketChatDialog: Audio received, size:" << audioData.size() << "bytes (already playing)";
+    // 不要再次调用 playAudioData，否则会重复播放
 }
 
 void WebSocketChatDialog::onPetEmotionChanged(const QString &emotion) {
