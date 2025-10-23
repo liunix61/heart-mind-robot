@@ -105,6 +105,7 @@ private slots:
     void onError(QAbstractSocket::SocketError error);
     void onHeartbeatTimeout();
     void onPongReceived(quint64 elapsedTime, const QByteArray &payload);
+    void onReconnectTimeout();
 
 private:
     // 连接管理
@@ -122,6 +123,12 @@ private:
     bool m_pongReceived;
     int m_heartbeatInterval;
     int m_pongTimeout;
+    
+    // 重连管理
+    QTimer *m_reconnectTimer;
+    int m_reconnectInterval;
+    int m_reconnectAttempts;
+    int m_maxReconnectAttempts;
     
     // 消息处理
     QQueue<WebSocketMessage> m_messageQueue;
@@ -147,6 +154,9 @@ private:
     void handleIoTMessage(const QJsonObject &data);
     void handlePingMessage(const QJsonObject &data);
     void handlePongMessage(const QJsonObject &data);
+    void attemptReconnect();
+    void startReconnect();
+    void stopReconnect();
     
     // 工具方法
     QString generateSessionId();

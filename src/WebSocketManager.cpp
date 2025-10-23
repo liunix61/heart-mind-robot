@@ -15,8 +15,12 @@ WebSocketManager::WebSocketManager(QObject *parent)
     , m_heartbeatTimer(nullptr)
     , m_pongTimer(nullptr)
     , m_pongReceived(true)
-    , m_heartbeatInterval(30000) // 30秒
+    , m_heartbeatInterval(15000) // 15秒 - 缩短心跳间隔以保持连接
     , m_pongTimeout(10000) // 10秒
+    , m_reconnectTimer(nullptr)
+    , m_reconnectInterval(5000) // 5秒后重连
+    , m_reconnectAttempts(0)
+    , m_maxReconnectAttempts(999) // 几乎无限重连
     , m_currentState(DeviceState::DISCONNECTED)
     , m_protocolVersion("1")
 {
@@ -34,6 +38,9 @@ WebSocketManager::~WebSocketManager()
     }
     if (m_pongTimer) {
         m_pongTimer->deleteLater();
+    }
+    if (m_reconnectTimer) {
+        m_reconnectTimer->deleteLater();
     }
 }
 
@@ -64,8 +71,17 @@ void WebSocketManager::initializeWebSocket()
         if (!m_pongReceived) {
             qWarning() << "Pong timeout, connection may be lost";
             emit connectionError("Heartbeat timeout");
+            // 触发重连
+            if (m_webSocket) {
+                m_webSocket->close();
+            }
         }
     });
+    
+    // 初始化重连定时器
+    m_reconnectTimer = new QTimer(this);
+    m_reconnectTimer->setSingleShot(true);
+    connect(m_reconnectTimer, &QTimer::timeout, this, &WebSocketManager::onReconnectTimeout);
 }
 
 bool WebSocketManager::connectToServer(const QString &url, const QString &accessToken)
@@ -258,6 +274,10 @@ void WebSocketManager::onConnected()
     m_sessionId = generateSessionId();
     setCurrentState(DeviceState::CONNECTING);
     
+    // 重置重连计数
+    m_reconnectAttempts = 0;
+    stopReconnect();
+    
     // 发送hello消息
     sendHello();
     
@@ -274,6 +294,10 @@ void WebSocketManager::onDisconnected()
     m_connected = false;
     setCurrentState(DeviceState::DISCONNECTED);
     stopHeartbeat();
+    
+    // 启动自动重连
+    qDebug() << "Will attempt to reconnect in" << m_reconnectInterval << "ms";
+    startReconnect();
     
     emit disconnected();
 }
@@ -302,9 +326,19 @@ void WebSocketManager::onError(QAbstractSocket::SocketError error)
 void WebSocketManager::onHeartbeatTimeout()
 {
     if (m_webSocket && m_webSocket->state() == QAbstractSocket::ConnectedState) {
+        // 发送应用层 ping 消息（JSON 格式）
+        WebSocketMessage message;
+        message.type = MessageType::PING;
+        message.sessionId = m_sessionId;
+        message.timestamp = getCurrentTimestamp();
+        sendMessage(message);
+        
+        // 也发送 WebSocket 协议层的 ping
         m_pongReceived = false;
         m_webSocket->ping();
         m_pongTimer->start(m_pongTimeout);
+        
+        qDebug() << "Heartbeat sent (application + protocol ping)";
     }
 }
 
@@ -480,7 +514,10 @@ void WebSocketManager::handlePingMessage(const QJsonObject &data)
 void WebSocketManager::handlePongMessage(const QJsonObject &data)
 {
     Q_UNUSED(data)
-    qDebug() << "Received pong from server";
+    // 应用层 pong 接收，重置心跳超时
+    m_pongReceived = true;
+    m_pongTimer->stop();
+    qDebug() << "Received pong from server (application layer)";
 }
 
 QString WebSocketManager::generateSessionId()
@@ -491,4 +528,39 @@ QString WebSocketManager::generateSessionId()
 QString WebSocketManager::getCurrentTimestamp()
 {
     return QDateTime::currentDateTime().toString(Qt::ISODate);
+}
+
+void WebSocketManager::onReconnectTimeout()
+{
+    attemptReconnect();
+}
+
+void WebSocketManager::attemptReconnect()
+{
+    if (m_reconnectAttempts >= m_maxReconnectAttempts) {
+        qWarning() << "Max reconnect attempts reached, giving up";
+        return;
+    }
+    
+    m_reconnectAttempts++;
+    qDebug() << "Attempting to reconnect... (attempt" << m_reconnectAttempts << ")";
+    
+    // 尝试重新连接
+    if (m_webSocket && m_webSocket->state() != QAbstractSocket::ConnectedState) {
+        m_webSocket->open(m_serverUrl);
+    }
+}
+
+void WebSocketManager::startReconnect()
+{
+    if (m_reconnectTimer && !m_reconnectTimer->isActive()) {
+        m_reconnectTimer->start(m_reconnectInterval);
+    }
+}
+
+void WebSocketManager::stopReconnect()
+{
+    if (m_reconnectTimer) {
+        m_reconnectTimer->stop();
+    }
 }
