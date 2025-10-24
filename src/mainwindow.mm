@@ -109,7 +109,7 @@ MainWindow::MainWindow(QWidget *parent, QApplication *mapp)
     m_menu->addAction(a_exit);
 //显示系统托盘
     m_systemTray->setIcon(QIcon(resource_loader::get_instance().get_system_tray_icon_path()));
-    m_systemTray->setToolTip("ChatFriend");
+    m_systemTray->setToolTip("Heart Mind Robot");
     m_systemTray->setContextMenu(m_menu);
     m_systemTray->show();
     connect(m_systemTray, &QSystemTrayIcon::activated, this, &MainWindow::activeTray);

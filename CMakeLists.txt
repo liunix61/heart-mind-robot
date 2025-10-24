@@ -1,5 +1,5 @@
 ﻿cmake_minimum_required(VERSION 3.10)
-project(ChatFriend LANGUAGES CXX C)
+project(HeartMindRobot LANGUAGES CXX C)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_AUTOUIC ON)
@@ -134,25 +134,31 @@ elseif(APPLE)
 endif()
 
 if(APPLE)
-    add_executable(ChatFriend MACOSX_BUNDLE ${PLATFORM_SOURCES})
-    set_target_properties(ChatFriend PROPERTIES
+    # 设置应用图标
+    set(MACOSX_BUNDLE_ICON_FILE AppIcon.icns)
+    set(APP_ICON_MACOS ${CMAKE_CURRENT_SOURCE_DIR}/AppIcon.icns)
+    set_source_files_properties(${APP_ICON_MACOS} PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
+    
+    add_executable(HeartMindRobot MACOSX_BUNDLE ${PLATFORM_SOURCES} ${APP_ICON_MACOS})
+    set_target_properties(HeartMindRobot PROPERTIES
         MACOSX_BUNDLE TRUE
         MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/Info.plist
+        MACOSX_BUNDLE_ICON_FILE AppIcon.icns
         RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
     )
 else()
-    add_executable(ChatFriend ${PLATFORM_SOURCES})
-    set_target_properties(ChatFriend PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+    add_executable(HeartMindRobot ${PLATFORM_SOURCES})
+    set_target_properties(HeartMindRobot PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 endif()
 
 add_subdirectory(src)
 
 if(WIN32)
-    target_link_libraries(ChatFriend PRIVATE Qt6::Widgets Qt6::OpenGL glew_s Framework Qt6::OpenGLWidgets glfw Qt6::Network Qt6::WebSockets Qt6::Multimedia winmm opus ${PORTAUDIO_LIBRARY})
+    target_link_libraries(HeartMindRobot PRIVATE Qt6::Widgets Qt6::OpenGL glew_s Framework Qt6::OpenGLWidgets glfw Qt6::Network Qt6::WebSockets Qt6::Multimedia winmm opus ${PORTAUDIO_LIBRARY})
 elseif(APPLE)
-    target_link_libraries(ChatFriend PRIVATE Qt6::Widgets Qt6::OpenGL glew_s Framework Qt6::OpenGLWidgets "-framework Cocoa -framework AVFoundation -framework CoreAudio -framework AudioToolbox -framework Carbon" glfw Qt6::Network Qt6::WebSockets Qt6::Multimedia opus ${PORTAUDIO_LIBRARY})
+    target_link_libraries(HeartMindRobot PRIVATE Qt6::Widgets Qt6::OpenGL glew_s Framework Qt6::OpenGLWidgets "-framework Cocoa -framework AVFoundation -framework CoreAudio -framework AudioToolbox -framework Carbon" glfw Qt6::Network Qt6::WebSockets Qt6::Multimedia opus ${PORTAUDIO_LIBRARY})
 endif()
 #执行alias alias otool='/usr/bin/otool'
 #alias install_name_tool='/usr/bin/install_name_tool'
-#sudo macdeployqt /path/to/ChatFriend.app 千万不要修改bash_profile中的路径（不明原因无法执行与anaconda3有关）
+#sudo macdeployqt /path/to/HeartMindRobot.app 千万不要修改bash_profile中的路径（不明原因无法执行与anaconda3有关）
 

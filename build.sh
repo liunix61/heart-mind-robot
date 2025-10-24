@@ -206,7 +206,7 @@ make -j$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)
 if [ $? -eq 0 ]; then
     echo "=========================================="
     echo "构建成功!"
-    echo "可执行文件位置: $BUILD_DIR/bin/ChatFriend"
+    echo "可执行文件位置: $BUILD_DIR/bin/HeartMindRobot.app"
     echo "=========================================="
 else
     echo "构建失败!"

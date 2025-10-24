@@ -1,7 +1,7 @@
 ﻿#include "Log_util.h"
 #include "resource_loader.hpp"
 #include "event_handler.hpp"
-#define  Resources_FILE_PATH  "/Users/zhaoming/coding/source/Macos_live2d_deskpet/Resources"
+
 namespace {
     constexpr int config_file_size = 4096;
 }
@@ -11,10 +11,23 @@ bool resource_loader::initialize() {
         CF_LOG_ERROR("initialize has finished");
         return true;
     }
-    resource_file_path = QString(Resources_FILE_PATH);
-//    QStringList path_list = QCoreApplication::applicationDirPath().split("/");
-//    path_list.removeLast();
-//    resource_file_path = path_list.join("/").append("/Resources");
+    
+    // 动态获取资源路径，支持开发和打包后的应用
+    QStringList path_list = QCoreApplication::applicationDirPath().split("/");
+    path_list.removeLast();
+    resource_file_path = path_list.join("/").append("/Resources");
+    
+    // 开发模式：如果Resources目录不存在，尝试使用项目根目录
+    QDir resourceDir(resource_file_path);
+    if (!resourceDir.exists()) {
+        // 尝试使用可执行文件所在目录的上上级目录 (适用于build/bin结构)
+        QString devPath = QCoreApplication::applicationDirPath();
+        QDir dir(devPath);
+        dir.cdUp(); // 从 bin 到 build
+        dir.cdUp(); // 从 build 到项目根目录
+        resource_file_path = dir.absolutePath() + "/Resources";
+        CF_LOG_INFO("Using development resource path: %s", resource_file_path.toStdString().c_str());
+    }
     QFile file(resource_file_path + "/config.json");
 
     if (!file.open(QIODevice::ReadOnly)) {

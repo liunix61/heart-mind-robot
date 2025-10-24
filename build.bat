@@ -98,7 +98,7 @@ cmake --build . --config Release
 if %errorlevel% equ 0 (
     echo ==========================================
     echo 构建成功!
-    echo 可执行文件位置: %BUILD_DIR%\bin\Release\ChatFriend.exe
+    echo 可执行文件位置: %BUILD_DIR%\bin\Release\HeartMindRobot.exe
     echo ==========================================
 ) else (
     echo 构建失败!

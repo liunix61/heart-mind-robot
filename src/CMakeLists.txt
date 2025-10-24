@@ -1,4 +1,4 @@
-target_sources(ChatFriend
+target_sources(HeartMindRobot
         PRIVATE
       ${CMAKE_CURRENT_SOURCE_DIR}/LAppAllocator.cpp
       ${CMAKE_CURRENT_SOURCE_DIR}/LAppDefine.cpp
