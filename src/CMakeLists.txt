@@ -70,6 +70,8 @@ target_sources(HeartMindRobot
         ${CMAKE_CURRENT_SOURCE_DIR}/Networkutil.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/ChatDialog.h
         ${CMAKE_CURRENT_SOURCE_DIR}/ChatDialog.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/WebSocketChatDialog.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/WebSocketChatDialog.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/MouseEvent.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/MouseEvent.h
         ${CMAKE_CURRENT_SOURCE_DIR}/AsyncMessageQueue.h

@@ -21,6 +21,12 @@ WebSocketChatDialog::WebSocketChatDialog(QWidget *parent) : QDialog(parent) {
     this->setWindowFlag(Qt::FramelessWindowHint);
     this->setWindowFlag(Qt::NoDropShadowWindowHint);
     
+    // 禁用系统菜单和标题栏按钮
+    this->setWindowFlag(Qt::WindowSystemMenuHint, false);
+    this->setWindowFlag(Qt::WindowCloseButtonHint, false);
+    this->setWindowFlag(Qt::WindowMinimizeButtonHint, false);
+    this->setWindowFlag(Qt::WindowMaximizeButtonHint, false);
+    
     auto &model = resource_loader::get_instance();
     qDebug() << "Loading dialog config - Width:" << model.dialog_width << "Height:" << model.dialog_height;
     this->resize(model.dialog_width, model.dialog_height);
@@ -30,7 +36,7 @@ WebSocketChatDialog::WebSocketChatDialog(QWidget *parent) : QDialog(parent) {
     m_deskPetIntegration = nullptr;
     m_connected = false;
     m_isRecording = false;
-    m_audioInputManager = std::make_unique<AudioInputManager>();
+    // m_audioInputManager = std::make_unique<AudioInputManager>(); // 暂时禁用
     m_lastBotMessageTime = 0;
     m_lastUserMessageTime = 0;
     m_globalHotkey = nullptr;
@@ -142,27 +148,27 @@ WebSocketChatDialog::WebSocketChatDialog(QWidget *parent) : QDialog(parent) {
     // 设置音频输入
     setupAudioInput();
     
-    // 设置全局热键 (Cmd+Shift+V)
-    m_globalHotkey = new GlobalHotkey(this);
-    if (m_globalHotkey->registerHotkey()) {
-        connect(m_globalHotkey, &GlobalHotkey::hotkeyPressed, 
-                this, &WebSocketChatDialog::startVoiceRecording);
-        connect(m_globalHotkey, &GlobalHotkey::hotkeyReleased, 
-                this, &WebSocketChatDialog::stopVoiceRecording);
-        qDebug() << "Global hotkey (Cmd+Shift+V) registered for voice input";
-    } else {
-        qWarning() << "Failed to register global hotkey";
-    }
+    // 设置全局热键 (Cmd+Shift+V) - 暂时禁用
+    // m_globalHotkey = new GlobalHotkey(this);
+    // if (m_globalHotkey->registerHotkey()) {
+    //     connect(m_globalHotkey, &GlobalHotkey::hotkeyPressed, 
+    //             this, &WebSocketChatDialog::startVoiceRecording);
+    //     connect(m_globalHotkey, &GlobalHotkey::hotkeyReleased, 
+    //             this, &WebSocketChatDialog::stopVoiceRecording);
+    //     qDebug() << "Global hotkey (Cmd+Shift+V) registered for voice input";
+    // } else {
+    //     qWarning() << "Failed to register global hotkey";
+    // }
     
     // 设置初始状态
     updateConnectionStatus();
 }
 
 WebSocketChatDialog::~WebSocketChatDialog() {
-    // 停止录音
-    if (m_audioInputManager) {
-        m_audioInputManager->stopRecording();
-    }
+    // 停止录音 - 暂时禁用
+    // if (m_audioInputManager) {
+    //     m_audioInputManager->stopRecording();
+    // }
     
     delete textEdit;
     delete inputLine;
@@ -360,34 +366,39 @@ void WebSocketChatDialog::updateConnectionStatus() {
 }
 
 void WebSocketChatDialog::setupAudioInput() {
-    if (!m_audioInputManager) {
-        qWarning() << "WebSocketChatDialog: audio input manager is null";
-        return;
-    }
+    // 暂时禁用音频输入功能
+    qDebug() << "WebSocketChatDialog: Audio input setup disabled for Windows build";
+    voiceButton->setEnabled(false);
+    return;
     
-    // 初始化音频输入管理器（16kHz, 单声道, 20ms帧）
-    qDebug() << "WebSocketChatDialog: initializing audio input manager...";
-    if (!m_audioInputManager->initialize(16000, 1, 20)) {
-        qWarning() << "WebSocketChatDialog: Failed to initialize audio input manager";
-        voiceButton->setEnabled(false);
-        return;
-    }
+    // if (!m_audioInputManager) {
+    //     qWarning() << "WebSocketChatDialog: audio input manager is null";
+    //     return;
+    // }
     
-    // 连接信号
-    qDebug() << "WebSocketChatDialog: connecting audio signals...";
-    connect(m_audioInputManager.get(), &AudioInputManager::audioDataEncoded,
-            this, &WebSocketChatDialog::onAudioDataEncoded);
-    connect(m_audioInputManager.get(), &AudioInputManager::recordingStateChanged,
-            this, &WebSocketChatDialog::onRecordingStateChanged);
-    connect(m_audioInputManager.get(), &AudioInputManager::errorOccurred,
-            this, &WebSocketChatDialog::onAudioError);
+    // // 初始化音频输入管理器（16kHz, 单声道, 20ms帧）
+    // qDebug() << "WebSocketChatDialog: initializing audio input manager...";
+    // if (!m_audioInputManager->initialize(16000, 1, 20)) {
+    //     qWarning() << "WebSocketChatDialog: Failed to initialize audio input manager";
+    //     voiceButton->setEnabled(false);
+    //     return;
+    // }
     
-    // 配置WebRTC处理
-    qDebug() << "WebSocketChatDialog: configuring WebRTC...";
-    m_audioInputManager->configureWebRTC(false, true, true); // AEC关闭, NS开启, HighPass开启
-    m_audioInputManager->setWebRTCEnabled(true);
+    // // 连接信号
+    // qDebug() << "WebSocketChatDialog: connecting audio signals...";
+    // connect(m_audioInputManager.get(), &AudioInputManager::audioDataEncoded,
+    //         this, &WebSocketChatDialog::onAudioDataEncoded);
+    // connect(m_audioInputManager.get(), &AudioInputManager::recordingStateChanged,
+    //         this, &WebSocketChatDialog::onRecordingStateChanged);
+    // connect(m_audioInputManager.get(), &AudioInputManager::errorOccurred,
+    //         this, &WebSocketChatDialog::onAudioError);
     
-    qDebug() << "WebSocketChatDialog: Audio input setup completed";
+    // // 配置WebRTC处理
+    // qDebug() << "WebSocketChatDialog: configuring WebRTC...";
+    // m_audioInputManager->configureWebRTC(false, true, true); // AEC关闭, NS开启, HighPass开启
+    // m_audioInputManager->setWebRTCEnabled(true);
+    
+    // qDebug() << "WebSocketChatDialog: Audio input setup completed";
 }
 
 void WebSocketChatDialog::toggleVoiceInput() {
@@ -396,49 +407,57 @@ void WebSocketChatDialog::toggleVoiceInput() {
 }
 
 void WebSocketChatDialog::startVoiceRecording() {
-    if (!m_audioInputManager || !m_deskPetIntegration) {
-        return;
-    }
+    // 暂时禁用语音录制功能
+    qDebug() << "Voice recording disabled for Windows build";
+    return;
     
-    if (m_isRecording) {
-        return; // 已经在录音中
-    }
+    // if (!m_audioInputManager || !m_deskPetIntegration) {
+    //     return;
+    // }
     
-    // 打断当前的TTS播放（如果正在说话）
-    m_deskPetIntegration->interruptSpeaking();
-    qDebug() << "Interrupted current speaking if any";
+    // if (m_isRecording) {
+    //     return; // 已经在录音中
+    // }
     
-    // 发送开始监听消息到服务器（必须先发送才能接收音频）
-    m_deskPetIntegration->startListening();
-    qDebug() << "Sent startListening to server";
+    // // 打断当前的TTS播放（如果正在说话）
+    // m_deskPetIntegration->interruptSpeaking();
+    // qDebug() << "Interrupted current speaking if any";
     
-    // 开始录音
-    if (!m_audioInputManager->startRecording()) {
-        qWarning() << "Failed to start recording";
-        // 如果录音失败，也要停止监听
-        m_deskPetIntegration->stopListening();
-        return;
-    }
+    // // 发送开始监听消息到服务器（必须先发送才能接收音频）
+    // m_deskPetIntegration->startListening();
+    // qDebug() << "Sent startListening to server";
     
-    qDebug() << "Voice input started (press and hold)";
+    // // 开始录音
+    // if (!m_audioInputManager->startRecording()) {
+    //     qWarning() << "Failed to start recording";
+    //     // 如果录音失败，也要停止监听
+    //     m_deskPetIntegration->stopListening();
+    //     return;
+    // }
+    
+    // qDebug() << "Voice input started (press and hold)";
 }
 
 void WebSocketChatDialog::stopVoiceRecording() {
-    if (!m_audioInputManager || !m_deskPetIntegration) {
-        return;
-    }
+    // 暂时禁用语音录制功能
+    qDebug() << "Voice recording disabled for Windows build";
+    return;
     
-    if (!m_isRecording) {
-        return; // 没有在录音
-    }
+    // if (!m_audioInputManager || !m_deskPetIntegration) {
+    //     return;
+    // }
     
-    // 停止录音
-    m_audioInputManager->stopRecording();
+    // if (!m_isRecording) {
+    //     return; // 没有在录音
+    // }
     
-    // 发送停止监听消息到服务器
-    m_deskPetIntegration->stopListening();
+    // // 停止录音
+    // m_audioInputManager->stopRecording();
     
-    qDebug() << "Voice input stopped (released)";
+    // // 发送停止监听消息到服务器
+    // m_deskPetIntegration->stopListening();
+    
+    // qDebug() << "Voice input stopped (released)";
 }
 
 void WebSocketChatDialog::onAudioDataEncoded(const QByteArray& encodedData) {
@@ -581,8 +600,9 @@ void WebSocketChatDialog::mousePressEvent(QMouseEvent *event) {
             return;
         }
         
-        // 只有在无边框模式下才允许拖动
-        if (this->windowFlags() & Qt::FramelessWindowHint) {
+        // 允许拖动（有边框且移动模式开启时）
+        if ((this->windowFlags() & Qt::Dialog) && 
+            !(this->windowFlags() & Qt::FramelessWindowHint)) {
             m_mousePressed = true;
             m_mousePos = event->globalPosition().toPoint() - this->pos();
             this->setCursor(Qt::ClosedHandCursor);
@@ -593,10 +613,11 @@ void WebSocketChatDialog::mousePressEvent(QMouseEvent *event) {
     QDialog::mousePressEvent(event);
 }
 
-// 鼠标移动事件 - 拖动窗口（只在无边框模式下有效）
+// 鼠标移动事件 - 拖动窗口（有边框且移动模式开启时）
 void WebSocketChatDialog::mouseMoveEvent(QMouseEvent *event) {
     if (m_mousePressed && (event->buttons() & Qt::LeftButton) && 
-        (this->windowFlags() & Qt::FramelessWindowHint)) {
+        (this->windowFlags() & Qt::Dialog) && 
+        !(this->windowFlags() & Qt::FramelessWindowHint)) {
         this->move(event->globalPosition().toPoint() - m_mousePos);
         event->accept();
         return;
