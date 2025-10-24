@@ -167,7 +167,8 @@ void MainWindow::action_move(QAction *a) {
             dialog_window_->setWindowFlag(Qt::FramelessWindowHint, true);
             dialog_window_->show();
             model.update_dialog_position(dialog_window_->x(), dialog_window_->y());
-            model.update_dialog_size(dialog_window_->width(), dialog_window_->height());
+            // 注释掉自动保存对话框尺寸，允许用户在config.json中手动配置
+            // model.update_dialog_size(dialog_window_->width(), dialog_window_->height());
         }
         model.update_current_model_position(this->x(), this->y());
         model.update_current_model_size(this->width(), this->height());

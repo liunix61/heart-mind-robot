@@ -18,6 +18,7 @@
 #include <memory>
 #include "resource_loader.hpp"
 #include "AudioInputManager.hpp"
+#include "GlobalHotkey.h"
 
 class DeskPetIntegration;
 
@@ -61,6 +62,9 @@ private:
     std::unique_ptr<AudioInputManager> m_audioInputManager;
     bool m_isRecording;
     
+    // 全局热键
+    GlobalHotkey *m_globalHotkey;
+    
     // 消息去重
     QString m_lastBotMessage;
     qint64 m_lastBotMessageTime;  // 毫秒时间戳
@@ -77,6 +81,11 @@ private:
     void appendBotMessage(const QString &message);
     void appendSystemMessage(const QString &message);  // 系统消息（居中显示）
     void scrollToBottom();
+    
+protected:
+    // 重写键盘事件处理快捷键
+    void keyPressEvent(QKeyEvent *event) override;
+    void keyReleaseEvent(QKeyEvent *event) override;
 };
 
 #endif // WEBSOCKETCHATDIALOG_H

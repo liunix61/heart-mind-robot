@@ -10,6 +10,7 @@
 #include <QDateTime>
 #include <QTextBlockFormat>
 #include <QTextCharFormat>
+#include <QKeyEvent>
 
 WebSocketChatDialog::WebSocketChatDialog(QWidget *parent) : QDialog(parent) {
     setWindowTitle("WebSocket聊天");
@@ -18,8 +19,10 @@ WebSocketChatDialog::WebSocketChatDialog(QWidget *parent) : QDialog(parent) {
     this->setWindowFlag(Qt::NoDropShadowWindowHint);
     
     auto &model = resource_loader::get_instance();
+    qDebug() << "Loading dialog config - Width:" << model.dialog_width << "Height:" << model.dialog_height;
     this->resize(model.dialog_width, model.dialog_height);
     this->move(model.dialog_x, model.dialog_y);
+    qDebug() << "Dialog resized to:" << this->width() << "x" << this->height();
     
     m_deskPetIntegration = nullptr;
     m_connected = false;
@@ -27,6 +30,7 @@ WebSocketChatDialog::WebSocketChatDialog(QWidget *parent) : QDialog(parent) {
     m_audioInputManager = std::make_unique<AudioInputManager>();
     m_lastBotMessageTime = 0;
     m_lastUserMessageTime = 0;
+    m_globalHotkey = nullptr;
     
     // 创建 QVBoxLayout 用于放置 QTextEdit 控件
     auto *layout = new QVBoxLayout(this);
@@ -133,6 +137,18 @@ WebSocketChatDialog::WebSocketChatDialog(QWidget *parent) : QDialog(parent) {
     
     // 设置音频输入
     setupAudioInput();
+    
+    // 设置全局热键 (Cmd+Shift+V)
+    m_globalHotkey = new GlobalHotkey(this);
+    if (m_globalHotkey->registerHotkey()) {
+        connect(m_globalHotkey, &GlobalHotkey::hotkeyPressed, 
+                this, &WebSocketChatDialog::startVoiceRecording);
+        connect(m_globalHotkey, &GlobalHotkey::hotkeyReleased, 
+                this, &WebSocketChatDialog::stopVoiceRecording);
+        qDebug() << "Global hotkey (Cmd+Shift+V) registered for voice input";
+    } else {
+        qWarning() << "Failed to register global hotkey";
+    }
     
     // 设置初始状态
     updateConnectionStatus();
@@ -536,4 +552,13 @@ void WebSocketChatDialog::scrollToBottom() {
     cursor.movePosition(QTextCursor::End);
     textEdit->setTextCursor(cursor);
     textEdit->ensureCursorVisible();
+}
+
+// 不再需要键盘事件处理，改用全局热键
+void WebSocketChatDialog::keyPressEvent(QKeyEvent *event) {
+    QDialog::keyPressEvent(event);
+}
+
+void WebSocketChatDialog::keyReleaseEvent(QKeyEvent *event) {
+    QDialog::keyReleaseEvent(event);
 }

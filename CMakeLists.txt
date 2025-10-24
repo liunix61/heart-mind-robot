@@ -103,11 +103,13 @@ set(COMMON_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/WebRTCAudioProcessor.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/AudioInputManager.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/inc/AudioInputManager.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/inc/GlobalHotkey.h
 )
 
 # macOS特定源文件（需要Objective-C++）
 set(MACOS_SPECIFIC_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/AudioPermission.mm
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/GlobalHotkey.mm
 )
 
 # 平台特定的源文件
@@ -148,7 +150,7 @@ add_subdirectory(src)
 if(WIN32)
     target_link_libraries(ChatFriend PRIVATE Qt6::Widgets Qt6::OpenGL glew_s Framework Qt6::OpenGLWidgets glfw Qt6::Network Qt6::WebSockets Qt6::Multimedia winmm opus ${PORTAUDIO_LIBRARY})
 elseif(APPLE)
-    target_link_libraries(ChatFriend PRIVATE Qt6::Widgets Qt6::OpenGL glew_s Framework Qt6::OpenGLWidgets "-framework Cocoa -framework AVFoundation -framework CoreAudio -framework AudioToolbox" glfw Qt6::Network Qt6::WebSockets Qt6::Multimedia opus ${PORTAUDIO_LIBRARY})
+    target_link_libraries(ChatFriend PRIVATE Qt6::Widgets Qt6::OpenGL glew_s Framework Qt6::OpenGLWidgets "-framework Cocoa -framework AVFoundation -framework CoreAudio -framework AudioToolbox -framework Carbon" glfw Qt6::Network Qt6::WebSockets Qt6::Multimedia opus ${PORTAUDIO_LIBRARY})
 endif()
 #执行alias alias otool='/usr/bin/otool'
 #alias install_name_tool='/usr/bin/install_name_tool'
