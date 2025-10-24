@@ -71,6 +71,10 @@ private:
     QString m_lastUserMessage;     // 记录最后一条用户消息
     qint64 m_lastUserMessageTime;  // 用户消息时间戳
     
+    // 鼠标拖动
+    bool m_mousePressed;
+    QPoint m_mousePos;
+    
     void updateConnectionStatus();
     void setupConnections();
     void setupAudioInput();
@@ -86,6 +90,11 @@ protected:
     // 重写键盘事件处理快捷键
     void keyPressEvent(QKeyEvent *event) override;
     void keyReleaseEvent(QKeyEvent *event) override;
+    
+    // 重写鼠标事件实现拖动
+    void mousePressEvent(QMouseEvent *event) override;
+    void mouseMoveEvent(QMouseEvent *event) override;
+    void mouseReleaseEvent(QMouseEvent *event) override;
 };
 
 #endif // WEBSOCKETCHATDIALOG_H

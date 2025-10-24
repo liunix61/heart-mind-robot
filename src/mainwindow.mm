@@ -151,9 +151,28 @@ void MainWindow::action_move(QAction *a) {
         this->m_change->setEnabled(false);
         this->a_exit->setEnabled(false);
         this->m_dialog->setEnabled(false);
-        if (dialog_window_->isVisible()) {
-            dialog_window_->setWindowFlag(Qt::FramelessWindowHint, false);
-            dialog_window_->show();
+        // 移动开启：对话框显示边框，可以拖动和缩放
+        if (websocket_dialog_window_) {
+            bool wasVisible = websocket_dialog_window_->isVisible();
+            QPoint oldPos = websocket_dialog_window_->pos();
+            QSize oldSize = websocket_dialog_window_->size();
+            
+            // 设置新的窗口标志（有边框）
+            Qt::WindowFlags flags = Qt::Dialog;
+            if (set_top->isChecked()) {
+                flags |= Qt::WindowStaysOnTopHint;
+            }
+            websocket_dialog_window_->setWindowFlags(flags);
+            websocket_dialog_window_->setAttribute(Qt::WA_TranslucentBackground, false);
+            
+            // 恢复位置和大小
+            websocket_dialog_window_->move(oldPos);
+            websocket_dialog_window_->resize(oldSize);
+            
+            if (wasVisible) {
+                websocket_dialog_window_->show();
+            }
+            qDebug() << "WebSocketDialog: move mode ON - borders enabled, flags:" << websocket_dialog_window_->windowFlags();
         }
     } else if (a == this->move_off) {
         CF_LOG_DEBUG("move off");
@@ -163,12 +182,32 @@ void MainWindow::action_move(QAction *a) {
         this->a_exit->setEnabled(true);
         this->m_dialog->setEnabled(true);
         auto &model = resource_loader::get_instance();
-        if (dialog_window_->isVisible()) {
-            dialog_window_->setWindowFlag(Qt::FramelessWindowHint, true);
-            dialog_window_->show();
-            model.update_dialog_position(dialog_window_->x(), dialog_window_->y());
+        // 移动关闭：对话框隐藏边框，变成无边框窗口
+        if (websocket_dialog_window_) {
+            bool wasVisible = websocket_dialog_window_->isVisible();
+            QPoint oldPos = websocket_dialog_window_->pos();
+            QSize oldSize = websocket_dialog_window_->size();
+            
+            // 设置新的窗口标志（无边框）
+            Qt::WindowFlags flags = Qt::Dialog | Qt::FramelessWindowHint | Qt::NoDropShadowWindowHint;
+            if (set_top->isChecked()) {
+                flags |= Qt::WindowStaysOnTopHint;
+            }
+            websocket_dialog_window_->setWindowFlags(flags);
+            websocket_dialog_window_->setAttribute(Qt::WA_TranslucentBackground, true);
+            
+            // 恢复位置和大小
+            websocket_dialog_window_->move(oldPos);
+            websocket_dialog_window_->resize(oldSize);
+            
+            if (wasVisible) {
+                websocket_dialog_window_->show();
+            }
+            
+            model.update_dialog_position(websocket_dialog_window_->x(), websocket_dialog_window_->y());
             // 注释掉自动保存对话框尺寸，允许用户在config.json中手动配置
-            // model.update_dialog_size(dialog_window_->width(), dialog_window_->height());
+            // model.update_dialog_size(websocket_dialog_window_->width(), websocket_dialog_window_->height());
+            qDebug() << "WebSocketDialog: move mode OFF - borderless enabled, flags:" << websocket_dialog_window_->windowFlags();
         }
         model.update_current_model_position(this->x(), this->y());
         model.update_current_model_size(this->width(), this->height());
@@ -304,15 +343,19 @@ void MainWindow::action_set_top() {
     if (set_top->isChecked() != resource_loader::get_instance().is_top()) {
         if (set_top->isChecked()) {
             this->setWindowFlag(Qt::WindowStaysOnTopHint, true);
-            dialog_window_->setWindowFlag(Qt::WindowStaysOnTopHint, true);
+            if (websocket_dialog_window_) {
+                websocket_dialog_window_->setWindowFlag(Qt::WindowStaysOnTopHint, true);
+            }
         } else {
             this->setWindowFlag(Qt::WindowStaysOnTopHint, false);
-            dialog_window_->setWindowFlag(Qt::WindowStaysOnTopHint, false);
+            if (websocket_dialog_window_) {
+                websocket_dialog_window_->setWindowFlag(Qt::WindowStaysOnTopHint, false);
+            }
         }
         this->show();
         MouseEventHandle::EnableMousePassThrough(this->winId(), true);
-        if (dialog_window_->isVisible()) {
-            dialog_window_->show();
+        if (websocket_dialog_window_ && websocket_dialog_window_->isVisible()) {
+            websocket_dialog_window_->show();
         }
         resource_loader::get_instance().set_top(set_top->isChecked());
     }

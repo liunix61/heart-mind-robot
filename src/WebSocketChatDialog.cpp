@@ -14,6 +14,9 @@
 
 WebSocketChatDialog::WebSocketChatDialog(QWidget *parent) : QDialog(parent) {
     setWindowTitle("WebSocket聊天");
+    
+    // 初始化时根据配置决定是否显示边框
+    // 默认是无边框的，除非用户打开了"移动"模式
     this->setAttribute(Qt::WA_TranslucentBackground);
     this->setWindowFlag(Qt::FramelessWindowHint);
     this->setWindowFlag(Qt::NoDropShadowWindowHint);
@@ -31,6 +34,7 @@ WebSocketChatDialog::WebSocketChatDialog(QWidget *parent) : QDialog(parent) {
     m_lastBotMessageTime = 0;
     m_lastUserMessageTime = 0;
     m_globalHotkey = nullptr;
+    m_mousePressed = false;
     
     // 创建 QVBoxLayout 用于放置 QTextEdit 控件
     auto *layout = new QVBoxLayout(this);
@@ -561,4 +565,54 @@ void WebSocketChatDialog::keyPressEvent(QKeyEvent *event) {
 
 void WebSocketChatDialog::keyReleaseEvent(QKeyEvent *event) {
     QDialog::keyReleaseEvent(event);
+}
+
+// 鼠标按下事件 - 开始拖动（只在无边框模式下有效）
+void WebSocketChatDialog::mousePressEvent(QMouseEvent *event) {
+    if (event->button() == Qt::LeftButton) {
+        // 检查点击的位置是否在输入控件或按钮上
+        QWidget *widget = this->childAt(event->pos());
+        if (widget && (widget == inputLine || 
+                       widget == sendButton || 
+                       widget == voiceButton || 
+                       widget == textEdit)) {
+            // 点击在控件上，不启动拖动
+            QDialog::mousePressEvent(event);
+            return;
+        }
+        
+        // 只有在无边框模式下才允许拖动
+        if (this->windowFlags() & Qt::FramelessWindowHint) {
+            m_mousePressed = true;
+            m_mousePos = event->globalPosition().toPoint() - this->pos();
+            this->setCursor(Qt::ClosedHandCursor);
+            event->accept();
+            return;
+        }
+    }
+    QDialog::mousePressEvent(event);
+}
+
+// 鼠标移动事件 - 拖动窗口（只在无边框模式下有效）
+void WebSocketChatDialog::mouseMoveEvent(QMouseEvent *event) {
+    if (m_mousePressed && (event->buttons() & Qt::LeftButton) && 
+        (this->windowFlags() & Qt::FramelessWindowHint)) {
+        this->move(event->globalPosition().toPoint() - m_mousePos);
+        event->accept();
+        return;
+    }
+    QDialog::mouseMoveEvent(event);
+}
+
+// 鼠标释放事件 - 停止拖动并保存位置
+void WebSocketChatDialog::mouseReleaseEvent(QMouseEvent *event) {
+    if (event->button() == Qt::LeftButton && m_mousePressed) {
+        m_mousePressed = false;
+        this->setCursor(Qt::ArrowCursor);
+        // 保存新位置
+        resource_loader::get_instance().update_dialog_position(this->pos().x(), this->pos().y());
+        qDebug() << "Dialog moved to:" << this->pos().x() << "," << this->pos().y();
+        event->accept();
+    }
+    QDialog::mouseReleaseEvent(event);
 }
