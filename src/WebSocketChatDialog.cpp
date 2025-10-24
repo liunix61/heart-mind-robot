@@ -384,6 +384,10 @@ void WebSocketChatDialog::startVoiceRecording() {
         return; // 已经在录音中
     }
     
+    // 打断当前的TTS播放（如果正在说话）
+    m_deskPetIntegration->interruptSpeaking();
+    qDebug() << "Interrupted current speaking if any";
+    
     // 发送开始监听消息到服务器（必须先发送才能接收音频）
     m_deskPetIntegration->startListening();
     qDebug() << "Sent startListening to server";

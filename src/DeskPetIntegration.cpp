@@ -195,6 +195,24 @@ void DeskPetIntegration::stopListening()
     m_controller->stopListening();
 }
 
+void DeskPetIntegration::interruptSpeaking()
+{
+    // 检查是否正在说话，如果是则中断
+    if (isSpeaking() || getCurrentDeviceState() == DeviceState::SPEAKING) {
+        qDebug() << "DeskPetIntegration: Interrupting current speaking";
+        
+        // 清空音频队列
+        if (m_audioPlayer) {
+            m_audioPlayer->clearAudioQueue();
+        }
+        
+        // 发送中断消息到服务器
+        if (m_controller) {
+            m_controller->abortSpeaking();
+        }
+    }
+}
+
 void DeskPetIntegration::sendTextMessage(const QString &text)
 {
     // 检查连接状态，如果未连接则尝试重连

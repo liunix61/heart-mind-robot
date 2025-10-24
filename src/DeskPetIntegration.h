@@ -32,6 +32,7 @@ public:
     // 桌宠控制
     void startListening();
     void stopListening();
+    void interruptSpeaking();  // 打断当前的语音播放
     void sendTextMessage(const QString &text);
     void sendVoiceMessage(const QByteArray &audioData);
     void sendAudioData(const QByteArray &audioData);  // 发送音频流数据
