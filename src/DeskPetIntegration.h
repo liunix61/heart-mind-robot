@@ -113,6 +113,11 @@ private:
     // 音频流累积缓冲
     QByteArray m_accumulatedPcmData;
     QTimer *m_lipSyncTimer;
+    
+    // 待发送消息队列（用于重连后自动发送）
+    QString m_pendingTextMessage;
+    bool m_hasPendingMessage;
+    
     // 核心组件
     DeskPetController *m_controller;
     MainWindow *m_mainWindow;

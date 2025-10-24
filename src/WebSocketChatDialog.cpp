@@ -175,13 +175,13 @@ void WebSocketChatDialog::sendMessage() {
         cursor.movePosition(QTextCursor::End);
         textEdit->setTextCursor(cursor);
         
-        if (m_deskPetIntegration && m_deskPetIntegration->isConnected()) {
-            // 检查是否正在说话，中断逻辑已在 DeskPetIntegration::sendTextMessage 中处理
-            // 直接发送消息即可
+        if (m_deskPetIntegration) {
+            // 无论连接状态如何，都尝试发送消息
+            // DeskPetIntegration会处理重连逻辑
             m_deskPetIntegration->sendTextMessage(message);
             qDebug() << "WebSocket: Sending message:" << message;
         } else {
-            textEdit->append("Bot:\n WebSocket连接未建立，无法发送消息");
+            textEdit->append("Bot:\n DeskPetIntegration未初始化");
             sendButton->setEnabled(true);
         }
     }

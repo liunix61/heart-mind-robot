@@ -18,6 +18,7 @@ DeskPetIntegration::DeskPetIntegration(QObject *parent)
     , m_initialized(false)
     , m_connected(false)
     , m_lipSyncEnabled(true)  // 默认启用口型同步
+    , m_hasPendingMessage(false)
 {
     // 初始化配置
     m_serverUrl = "wss://api.tenclass.net/xiaozhi/v1/";
@@ -198,19 +199,20 @@ void DeskPetIntegration::sendTextMessage(const QString &text)
 {
     // 检查连接状态，如果未连接则尝试重连
     if (!isConnected()) {
-        qWarning() << "Not connected to server, attempting to reconnect...";
+        qWarning() << "Not connected to server, caching message and reconnecting...";
+        
+        // 缓存待发送的消息
+        m_pendingTextMessage = text;
+        m_hasPendingMessage = true;
         
         // 尝试重新连接
         if (!connectToServer()) {
-            qCritical() << "Failed to reconnect to server, cannot send message";
-            emit connectionError("连接已断开，无法发送消息。请检查网络连接。");
-            return;
+            qCritical() << "Failed to initiate reconnection";
+            emit connectionError("连接已断开，正在尝试重连...");
+        } else {
+            qDebug() << "Reconnection initiated, message will be sent after connected";
         }
-        
-        // 等待连接建立（给一点时间让WebSocket连接）
-        qDebug() << "Reconnection initiated, waiting for connection...";
-        // 注意：这里是异步的，实际消息会在连接建立后发送
-        // 为了简化，我们假设连接很快建立，或者可以使用队列机制
+        return;
     }
     
     // 检查是否正在说话，如果是则中断
@@ -620,6 +622,18 @@ void DeskPetIntegration::onControllerConnected()
     qDebug() << "Controller connected";
     m_connected = true;
     emit connected();
+    
+    // 检查是否有待发送的消息
+    if (m_hasPendingMessage && !m_pendingTextMessage.isEmpty()) {
+        qDebug() << "Sending pending message after reconnection:" << m_pendingTextMessage;
+        
+        // 发送缓存的消息
+        m_controller->sendTextMessage(m_pendingTextMessage);
+        
+        // 清空缓存
+        m_pendingTextMessage.clear();
+        m_hasPendingMessage = false;
+    }
 }
 
 void DeskPetIntegration::onControllerDisconnected()

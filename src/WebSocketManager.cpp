@@ -314,9 +314,8 @@ void WebSocketManager::onDisconnected()
     setCurrentState(DeviceState::DISCONNECTED);
     stopHeartbeat();
     
-    // 启动自动重连
-    qDebug() << "Will attempt to reconnect in" << m_reconnectInterval << "ms";
-    startReconnect();
+    // 不自动重连，等待下次发送消息时再重连
+    qDebug() << "Connection closed, will reconnect on next message";
     
     emit disconnected();
 }
