@@ -39,7 +39,7 @@ private:
 
     void action_exit();
 
-    void action_voice();
+    // void action_voice();  // 已移除语音设置项
 
     void action_move(QAction *);
 
@@ -59,7 +59,7 @@ private:
     bool mouse_press{false};
     QSystemTrayIcon *m_systemTray;
     QAction *a_exit;
-    QAction *a_voice;
+    // QAction *a_voice;  // 已移除语音设置项
     QAction *move_off;
     QAction *move_on;
     QAction *set_top;

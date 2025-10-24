@@ -86,10 +86,10 @@ MainWindow::MainWindow(QWidget *parent, QApplication *mapp)
 
     a_exit = new QAction(m_menu);
     a_exit->setText(QStringLiteral("退出"));
-    a_voice = new QAction(m_menu);
-    a_voice->setText(QStringLiteral("语音"));
-    a_voice->setCheckable(true);
-    a_voice->setChecked(false);
+    // a_voice = new QAction(m_menu);
+    // a_voice->setText(QStringLiteral("语音"));
+    // a_voice->setCheckable(true);
+    // a_voice->setChecked(false);
 
     set_top = new QAction(m_menu);
     set_top->setText(QStringLiteral("置顶"));
@@ -101,7 +101,7 @@ MainWindow::MainWindow(QWidget *parent, QApplication *mapp)
     }
 
     m_menu->addAction(set_top);
-    m_menu->addAction(a_voice);
+    // m_menu->addAction(a_voice);  // 已移除语音设置项
     m_menu->addMenu(m_change);
     m_menu->addMenu(m_move);
     m_menu->addMenu(m_dialog);
@@ -114,7 +114,7 @@ MainWindow::MainWindow(QWidget *parent, QApplication *mapp)
     m_systemTray->show();
     connect(m_systemTray, &QSystemTrayIcon::activated, this, &MainWindow::activeTray);
     connect(set_top, &QAction::triggered, this, &MainWindow::action_set_top);
-    connect(a_voice, &QAction::triggered, this, &MainWindow::action_voice);
+    // connect(a_voice, &QAction::triggered, this, &MainWindow::action_voice);  // 已移除语音设置项
     connect(a_exit, &QAction::triggered, this, &MainWindow::action_exit);
     connect(g_move, &QActionGroup::triggered, this, &MainWindow::action_move);
     connect(g_change, &QActionGroup::triggered, this, &MainWindow::action_change);
@@ -387,10 +387,11 @@ void MainWindow::mouseMoveEvent(QMouseEvent *event) {
     }
 }
 
-void MainWindow::action_voice() {
-    if (a_voice->isChecked()) {
-        resource_loader::get_instance().tts_enable_ = true;
-    } else {
-        resource_loader::get_instance().tts_enable_ = false;
-    }
-}
+// 已移除语音设置项
+// void MainWindow::action_voice() {
+//     if (a_voice->isChecked()) {
+//         resource_loader::get_instance().tts_enable_ = true;
+//     } else {
+//         resource_loader::get_instance().tts_enable_ = false;
+//     }
+// }
