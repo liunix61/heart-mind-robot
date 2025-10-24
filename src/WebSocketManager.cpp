@@ -304,7 +304,10 @@ void WebSocketManager::onDisconnected()
 
 void WebSocketManager::onTextMessageReceived(const QString &message)
 {
-    qDebug() << "Received text message:" << message;
+    qDebug() << "========================================";
+    qDebug() << "=== Raw WebSocket Text Message ===";
+    qDebug() << message;
+    qDebug() << "========================================";
     processIncomingMessage(message);
 }
 
@@ -470,6 +473,16 @@ void WebSocketManager::handleTTSMessage(const QJsonObject &data)
     QString emotion = data["emotion"].toString();
     QString state = data["state"].toString();
     
+    // 添加调试日志 - 只在有 emotion 时显示
+    if (!emotion.isEmpty()) {
+        qDebug() << "========================================";
+        qDebug() << "=== TTS with Emotion! ===";
+        qDebug() << "Text:" << text;
+        qDebug() << "Emotion:" << emotion;
+        qDebug() << "State:" << state;
+        qDebug() << "========================================";
+    }
+    
     if (state == "start") {
         setCurrentState(DeviceState::SPEAKING);
     } else if (state == "stop") {
@@ -489,6 +502,15 @@ void WebSocketManager::handleLLMMessage(const QJsonObject &data)
 {
     QString text = data["text"].toString();
     QString emotion = data["emotion"].toString();
+    
+    // 添加调试日志
+    qDebug() << "========================================";
+    qDebug() << "=== LLM Message Received! ===";
+    qDebug() << "Text:" << text;
+    qDebug() << "Emotion:" << emotion;
+    qDebug() << "Full data:" << data;
+    qDebug() << "========================================";
+    
     emit llmMessageReceived(text, emotion);
 }
 

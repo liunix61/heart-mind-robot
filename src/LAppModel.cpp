@@ -491,11 +491,13 @@ csmBool LAppModel::HitTest(const csmChar *hitAreaName, csmFloat32 x, csmFloat32 
 
 void LAppModel::SetExpression(const csmChar *expressionID) {
     ACubismMotion *motion = _expressions[expressionID];
-    CF_LOG_DEBUG("expression: [%s]", expressionID);
+    CF_LOG_INFO("✨ SetExpression called with: [%s]", expressionID);
 
     if (motion != nullptr) {
+        CF_LOG_INFO("✅ Expression motion found, starting it");
         _expressionManager->StartMotionPriority(motion, false, PriorityForce); // 将表情设置为强制优先级（优先级最高）
     } else {
+        CF_LOG_ERROR("❌ Expression [%s] is nullptr - expression not loaded!", expressionID);
         if (_debugMode) LAppPal::PrintLog("[APP]expression[%s] is nullptr ", expressionID);
     }
 }

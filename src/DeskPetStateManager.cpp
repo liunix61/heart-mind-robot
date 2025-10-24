@@ -224,13 +224,20 @@ void DeskPetStateManager::processSTTMessage(const QString &text)
 
 void DeskPetStateManager::processLLMMessage(const QString &text, const QString &emotion)
 {
-    qDebug() << "Processing LLM message:" << text << "emotion:" << emotion;
+    qDebug() << "========================================";
+    qDebug() << "=== Processing LLM Message ===";
+    qDebug() << "Text:" << text;
+    qDebug() << "Emotion:" << emotion;
+    qDebug() << "========================================";
     
     setBehavior(PetBehavior::THINKING);
     setAudioState(AudioState::PROCESSING);
     
     // 处理情绪
-    handleEmotionChange(emotion);
+    if (!emotion.isEmpty()) {
+        qDebug() << "Calling handleEmotionChange with:" << emotion;
+        handleEmotionChange(emotion);
+    }
     
     // 处理文本情绪
     processTextForEmotion(text);

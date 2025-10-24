@@ -472,8 +472,76 @@ void DeskPetIntegration::handleEmotionChange(const QString &emotion)
     // 根据情绪更新Live2D表情
     qDebug() << "Handling emotion change:" << emotion;
     
-    // 这里可以根据情绪更新Live2D的表情参数
-    // 例如：m_live2DManager->setExpression(emotion);
+    // 情绪到 Live2D 表情的映射
+    // Haru 模型有 F01-F08 表情
+    QString expressionName;
+    
+    // 将服务器返回的情绪名称映射到 Live2D 表情
+    // 表情说明：
+    // F01 = 微笑（嘴巴）
+    // F02 = 悲伤（眉毛下垂、嘴巴张开、眼睛变化）
+    // F03 = 生气（眉毛皱起、嘴巴）
+    // F04 = 惊讶（眼睛睁大、眉毛上扬）
+    // F05 = 开心/害羞（眯眼笑）- 最明显
+    // F06-F08 = 其他表情
+    
+    if (emotion.contains("happy", Qt::CaseInsensitive) || 
+        emotion.contains("joy", Qt::CaseInsensitive) ||
+        emotion.contains("开心", Qt::CaseInsensitive) ||
+        emotion.contains("高兴", Qt::CaseInsensitive)) {
+        expressionName = "F05";  // 开心表情（眯眼笑，最明显）
+    }
+    else if (emotion.contains("sad", Qt::CaseInsensitive) || 
+             emotion.contains("upset", Qt::CaseInsensitive) ||
+             emotion.contains("悲伤", Qt::CaseInsensitive) ||
+             emotion.contains("难过", Qt::CaseInsensitive)) {
+        expressionName = "F02";  // 悲伤表情
+    }
+    else if (emotion.contains("angry", Qt::CaseInsensitive) || 
+             emotion.contains("mad", Qt::CaseInsensitive) ||
+             emotion.contains("生气", Qt::CaseInsensitive) ||
+             emotion.contains("愤怒", Qt::CaseInsensitive)) {
+        expressionName = "F03";  // 生气表情
+    }
+    else if (emotion.contains("surprised", Qt::CaseInsensitive) || 
+             emotion.contains("shock", Qt::CaseInsensitive) ||
+             emotion.contains("惊讶", Qt::CaseInsensitive) ||
+             emotion.contains("吃惊", Qt::CaseInsensitive)) {
+        expressionName = "F04";  // 惊讶表情
+    }
+    else if (emotion.contains("shy", Qt::CaseInsensitive) || 
+             emotion.contains("embarrassed", Qt::CaseInsensitive) ||
+             emotion.contains("害羞", Qt::CaseInsensitive)) {
+        expressionName = "F05";  // 害羞表情（同样是眯眼笑）
+    }
+    else if (emotion.contains("thinking", Qt::CaseInsensitive) || 
+             emotion.contains("confused", Qt::CaseInsensitive) ||
+             emotion.contains("思考", Qt::CaseInsensitive) ||
+             emotion.contains("疑惑", Qt::CaseInsensitive)) {
+        expressionName = "F06";  // 思考表情
+    }
+    else if (emotion.contains("excited", Qt::CaseInsensitive) || 
+             emotion.contains("兴奋", Qt::CaseInsensitive)) {
+        expressionName = "F07";  // 兴奋表情
+    }
+    else if (emotion.contains("tired", Qt::CaseInsensitive) || 
+             emotion.contains("sleepy", Qt::CaseInsensitive) ||
+             emotion.contains("累", Qt::CaseInsensitive) ||
+             emotion.contains("疲惫", Qt::CaseInsensitive)) {
+        expressionName = "F08";  // 疲惫表情
+    }
+    else {
+        // 默认使用微笑
+        expressionName = "F01";  // 默认微笑表情
+    }
+    
+    // 调用 Live2D 管理器设置表情
+    if (m_live2DManager->GetModel(0)) {
+        qDebug() << "Setting Live2D expression:" << expressionName << "for emotion:" << emotion;
+        m_live2DManager->GetModel(0)->SetExpression(expressionName.toUtf8().constData());
+    } else {
+        qDebug() << "Live2D model not available for expression update";
+    }
 }
 
 void DeskPetIntegration::handleAnimationRequest(const QString &animationName)
