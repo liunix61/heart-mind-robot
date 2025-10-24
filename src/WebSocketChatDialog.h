@@ -58,6 +58,10 @@ private:
     std::unique_ptr<AudioInputManager> m_audioInputManager;
     bool m_isRecording;
     
+    // 消息去重
+    QString m_lastBotMessage;
+    qint64 m_lastBotMessageTime;  // 毫秒时间戳
+    
     void updateConnectionStatus();
     void setupConnections();
     void setupAudioInput();

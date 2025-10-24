@@ -525,15 +525,22 @@ void WebSocketManager::handleTTSMessage(const QJsonObject &data)
     
     if (state == "start") {
         setCurrentState(DeviceState::SPEAKING);
+        return;  // start状态不发送文本消息
     } else if (state == "stop") {
         setCurrentState(DeviceState::IDLE);
         // 说话结束，重置表情到默认状态
         qDebug() << "TTS stopped, resetting expression to neutral";
         emit ttsMessageReceived("", "neutral");  // 发送空文本和neutral情绪来重置表情
         return;  // 直接返回，不再发送下面的信号
+    } else if (state == "sentence_end") {
+        // sentence_end不发送消息，避免和sentence_start重复
+        return;
     }
     
-    emit ttsMessageReceived(text, emotion);
+    // 只在 sentence_end 或其他有文本的状态时发送消息
+    if (!text.isEmpty()) {
+        emit ttsMessageReceived(text, emotion);
+    }
 }
 
 void WebSocketManager::handleSTTMessage(const QJsonObject &data)

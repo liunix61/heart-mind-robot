@@ -7,6 +7,7 @@
 #include "DeskPetIntegration.h"
 #include <QMouseEvent>
 #include <QDebug>
+#include <QDateTime>
 
 WebSocketChatDialog::WebSocketChatDialog(QWidget *parent) : QDialog(parent) {
     setWindowTitle("WebSocket聊天");
@@ -22,6 +23,7 @@ WebSocketChatDialog::WebSocketChatDialog(QWidget *parent) : QDialog(parent) {
     m_connected = false;
     m_isRecording = false;
     m_audioInputManager = std::make_unique<AudioInputManager>();
+    m_lastBotMessageTime = 0;
     
     // 创建 QVBoxLayout 用于放置 QTextEdit 控件
     auto *layout = new QVBoxLayout(this);
@@ -142,6 +144,9 @@ void WebSocketChatDialog::setDeskPetIntegration(DeskPetIntegration *integration)
 void WebSocketChatDialog::setupConnections() {
     if (!m_deskPetIntegration) return;
     
+    // 先断开所有可能存在的旧连接，避免重复连接
+    disconnect(m_deskPetIntegration, nullptr, this, nullptr);
+    
     // 连接WebSocket状态信号
     connect(m_deskPetIntegration, &DeskPetIntegration::connected, 
             this, &WebSocketChatDialog::onWebSocketConnected);
@@ -216,17 +221,23 @@ void WebSocketChatDialog::onWebSocketError(const QString &error) {
 }
 
 void WebSocketChatDialog::onBotReplyTextMessage(const QString &text) {
+    qDebug() << "### WebSocketChatDialog::onBotReplyTextMessage called ###";
+    qDebug() << "    this pointer:" << this;
+    qDebug() << "    Text:" << text;
+    
     // 过滤纯表情消息（只包含emoji的消息）
     // 因为表情已经通过Live2D模型表现，不需要在对话框中显示
     QString trimmedText = text.trimmed();
     
     // 检查是否是纯表情（只包含emoji字符）
-    bool isOnlyEmoji = true;
-    if (!trimmedText.isEmpty()) {
+    // 简化逻辑：如果消息长度<=3且包含高Unicode字符，认为是纯表情
+    bool isOnlyEmoji = false;
+    if (trimmedText.length() <= 3) {
+        isOnlyEmoji = true;
         for (const QChar &c : trimmedText) {
-            // 如果包含非emoji字符（正常文字、数字等），则不是纯表情
-            if (c.unicode() < 0x1F300 || c.unicode() > 0x1F9FF) {
-                if (!c.isSpace()) {  // 忽略空格
+            // 如果包含普通ASCII字符、中文等，则不是纯表情
+            if (c.unicode() < 0x2000 || (c.unicode() >= 0x4E00 && c.unicode() <= 0x9FFF)) {
+                if (!c.isSpace()) {
                     isOnlyEmoji = false;
                     break;
                 }
@@ -234,9 +245,25 @@ void WebSocketChatDialog::onBotReplyTextMessage(const QString &text) {
         }
     }
     
+    qDebug() << "    isOnlyEmoji:" << isOnlyEmoji;
+    
     // 只显示非纯表情消息
     if (!isOnlyEmoji && !trimmedText.isEmpty()) {
+        // 去重：如果和上一条消息相同且在2秒内，则忽略
+        qint64 currentTime = QDateTime::currentMSecsSinceEpoch();
+        if (trimmedText == m_lastBotMessage && (currentTime - m_lastBotMessageTime) < 2000) {
+            qDebug() << "    >>> Duplicate message filtered:" << trimmedText;
+            return;
+        }
+        
+        // 记录本次消息
+        m_lastBotMessage = trimmedText;
+        m_lastBotMessageTime = currentTime;
+        
+        qDebug() << "    >>> Will display message:" << text;
         BotReply(text);
+    } else {
+        qDebug() << "    >>> Message filtered (emoji or empty)";
     }
 }
 

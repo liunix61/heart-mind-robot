@@ -351,6 +351,14 @@ void DeskPetController::setupConnections()
 {
     if (!m_webSocketManager || !m_stateManager) return;
     
+    // 先断开所有可能存在的旧连接，避免重复连接
+    if (m_webSocketManager) {
+        disconnect(m_webSocketManager, nullptr, this, nullptr);
+    }
+    if (m_stateManager) {
+        disconnect(m_stateManager, nullptr, this, nullptr);
+    }
+    
     // WebSocket信号连接
     connect(m_webSocketManager, &WebSocketManager::connected, this, &DeskPetController::onWebSocketConnected);
     connect(m_webSocketManager, &WebSocketManager::disconnected, this, &DeskPetController::onWebSocketDisconnected);
@@ -612,8 +620,15 @@ void DeskPetController::onWebSocketMessageReceived(const WebSocketMessage &messa
 
 void DeskPetController::onWebSocketTTSReceived(const QString &text, const QString &emotion)
 {
+    qDebug() << "DeskPetController::onWebSocketTTSReceived - Text:" << text << "Emotion:" << emotion;
     handleTTSMessage(text, emotion);
-    emit messageReceived(text);
+    
+    // 只有当文本不为空且不是纯表情重置信号时才发送消息
+    // 避免TTS的多个state消息导致重复显示
+    if (!text.isEmpty() && emotion != "neutral") {
+        qDebug() << "Emitting messageReceived:" << text;
+        emit messageReceived(text);
+    }
 }
 
 void DeskPetController::onWebSocketSTTReceived(const QString &text)
