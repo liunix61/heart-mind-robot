@@ -64,11 +64,19 @@ private:
     // 消息去重
     QString m_lastBotMessage;
     qint64 m_lastBotMessageTime;  // 毫秒时间戳
+    QString m_lastUserMessage;     // 记录最后一条用户消息
+    qint64 m_lastUserMessageTime;  // 用户消息时间戳
     
     void updateConnectionStatus();
     void setupConnections();
     void setupAudioInput();
     void updateVoiceButtonState();
+    
+    // 微信风格消息气泡
+    void appendUserMessage(const QString &message);
+    void appendBotMessage(const QString &message);
+    void appendSystemMessage(const QString &message);  // 系统消息（居中显示）
+    void scrollToBottom();
 };
 
 #endif // WEBSOCKETCHATDIALOG_H

@@ -8,6 +8,8 @@
 #include <QMouseEvent>
 #include <QDebug>
 #include <QDateTime>
+#include <QTextBlockFormat>
+#include <QTextCharFormat>
 
 WebSocketChatDialog::WebSocketChatDialog(QWidget *parent) : QDialog(parent) {
     setWindowTitle("WebSocket聊天");
@@ -24,6 +26,7 @@ WebSocketChatDialog::WebSocketChatDialog(QWidget *parent) : QDialog(parent) {
     m_isRecording = false;
     m_audioInputManager = std::make_unique<AudioInputManager>();
     m_lastBotMessageTime = 0;
+    m_lastUserMessageTime = 0;
     
     // 创建 QVBoxLayout 用于放置 QTextEdit 控件
     auto *layout = new QVBoxLayout(this);
@@ -31,20 +34,30 @@ WebSocketChatDialog::WebSocketChatDialog(QWidget *parent) : QDialog(parent) {
     // 创建 QTextEdit 控件
     textEdit = new QTextEdit(this);
     textEdit->setReadOnly(true);
-
+    
+    // 微信风格背景
     textEdit->setStyleSheet(
             "QTextEdit {"
-            "background-color: rgba(220, 240, 255, 50%); "
-            "border: 1px solid #94B8FF; "
-            "border-radius: 10px; "
-            "padding: 1px 1px; "
-            "font-family: 'STHeiti', sans-serif; font-size: 14px; color: #333333;"
+            "background-color: #F5F5F5; "  // 微信浅灰色背景
+            "border: none; "
+            "padding: 10px; "
+            "font-family: 'PingFang SC', 'Helvetica Neue', 'STHeiti', sans-serif; "
+            "font-size: 15px; "
             "}"
             "QScrollBar:vertical {"
-            "    width: 0px; /* 隐藏垂直滚动条滑块宽度 */"
+            "    width: 6px; "
+            "    background: transparent;"
+            "}"
+            "QScrollBar::handle:vertical {"
+            "    background: #C0C0C0;"
+            "    border-radius: 3px;"
+            "    min-height: 20px;"
+            "}"
+            "QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {"
+            "    height: 0px;"
             "}"
             "QScrollBar:horizontal {"
-            "    height: 0px; /* 隐藏水平滚动条滑块高度 */"
+            "    height: 0px;"
             "}"
     );
 
@@ -178,13 +191,10 @@ void WebSocketChatDialog::sendMessage() {
     QString message = inputLine->text();
     if (!message.isEmpty()) {
         sendButton->setEnabled(false);
-        textEdit->append("You:\n " + message);
-        inputLine->clear();
         
-        // 滚动到底部
-        QTextCursor cursor = textEdit->textCursor();
-        cursor.movePosition(QTextCursor::End);
-        textEdit->setTextCursor(cursor);
+        // 使用微信风格的用户消息气泡
+        appendUserMessage(message);
+        inputLine->clear();
         
         if (m_deskPetIntegration) {
             // 无论连接状态如何，都尝试发送消息
@@ -192,51 +202,42 @@ void WebSocketChatDialog::sendMessage() {
             m_deskPetIntegration->sendTextMessage(message);
             qDebug() << "WebSocket: Sending message:" << message;
         } else {
-            textEdit->append("Bot:\n DeskPetIntegration未初始化");
+            appendSystemMessage("DeskPetIntegration未初始化");
             sendButton->setEnabled(true);
         }
     }
 }
 
 void WebSocketChatDialog::BotReply(const QString &content) {
-    textEdit->append("Bot:\n " + content);
+    // 使用微信风格的Bot消息气泡
+    appendBotMessage(content);
     sendButton->setEnabled(true);
-    
-    // 滚动到底部
-    QTextCursor cursor = textEdit->textCursor();
-    cursor.movePosition(QTextCursor::End);
-    textEdit->setTextCursor(cursor);
 }
 
 void WebSocketChatDialog::onWebSocketConnected() {
     m_connected = true;
     updateConnectionStatus();
-    textEdit->append("Bot:\n WebSocket连接已建立，可以开始对话了！");
+    appendSystemMessage("连接成功，可以开始对话了！");
 }
 
 void WebSocketChatDialog::onWebSocketDisconnected() {
     m_connected = false;
     updateConnectionStatus();
-    textEdit->append("Bot:\n WebSocket连接已断开");
+    appendSystemMessage("连接已断开");
 }
 
 void WebSocketChatDialog::onWebSocketError(const QString &error) {
     m_connected = false;
     updateConnectionStatus();
-    textEdit->append("Bot:\n WebSocket连接错误: " + error);
+    appendSystemMessage("连接错误: " + error);
 }
 
 void WebSocketChatDialog::onSTTReceived(const QString &text) {
     qDebug() << "STT received:" << text;
     
     if (!text.isEmpty()) {
-        // 显示用户说的话
-        textEdit->append("You:\n " + text);
-        
-        // 滚动到底部
-        QTextCursor cursor = textEdit->textCursor();
-        cursor.movePosition(QTextCursor::End);
-        textEdit->setTextCursor(cursor);
+        // 显示用户说的话（微信风格气泡）
+        appendUserMessage(text);
     }
 }
 
@@ -437,7 +438,7 @@ void WebSocketChatDialog::onRecordingStateChanged(bool isRecording) {
 }
 
 void WebSocketChatDialog::onAudioError(const QString& error) {
-    textEdit->append("Bot:\n 音频错误: " + error);
+    appendSystemMessage("音频错误: " + error);
     qWarning() << "Audio error:" << error;
 }
 
@@ -445,4 +446,90 @@ void WebSocketChatDialog::updateVoiceButtonState() {
     // 长按模式下，按钮状态由CSS的:pressed自动处理
     // 不需要额外的状态切换
     // 按钮始终保持麦克风图标
+}
+
+// 添加用户消息（微信风格：右对齐绿色气泡）
+void WebSocketChatDialog::appendUserMessage(const QString &message) {
+    // 去重：如果和上一条用户消息相同且在1秒内，则忽略
+    qint64 currentTime = QDateTime::currentMSecsSinceEpoch();
+    if (message == m_lastUserMessage && (currentTime - m_lastUserMessageTime) < 1000) {
+        qDebug() << "Duplicate user message filtered:" << message;
+        return;
+    }
+    
+    // 记录本次消息
+    m_lastUserMessage = message;
+    m_lastUserMessageTime = currentTime;
+    
+    QTextCursor cursor = textEdit->textCursor();
+    cursor.movePosition(QTextCursor::End);
+    
+    // 设置段落右对齐，添加上下间距
+    QTextBlockFormat blockFormat;
+    blockFormat.setAlignment(Qt::AlignRight);
+    blockFormat.setTopMargin(8);      // 上边距
+    blockFormat.setBottomMargin(8);   // 下边距
+    cursor.insertBlock(blockFormat);
+    
+    // 插入气泡样式的文字
+    QTextCharFormat charFormat;
+    charFormat.setBackground(QColor("#95EC69"));
+    charFormat.setForeground(QColor("#000000"));
+    
+    cursor.insertText(" " + message + " ", charFormat);
+    
+    scrollToBottom();
+}
+
+// 添加Bot消息（微信风格：左对齐白色气泡）
+void WebSocketChatDialog::appendBotMessage(const QString &message) {
+    QTextCursor cursor = textEdit->textCursor();
+    cursor.movePosition(QTextCursor::End);
+    
+    // 设置段落左对齐，添加上下间距
+    QTextBlockFormat blockFormat;
+    blockFormat.setAlignment(Qt::AlignLeft);
+    blockFormat.setTopMargin(8);      // 上边距
+    blockFormat.setBottomMargin(8);   // 下边距
+    cursor.insertBlock(blockFormat);
+    
+    // 插入气泡样式的文字
+    QTextCharFormat charFormat;
+    charFormat.setBackground(QColor("#FFFFFF"));
+    charFormat.setForeground(QColor("#000000"));
+    
+    cursor.insertText(" " + message + " ", charFormat);
+    
+    scrollToBottom();
+}
+
+// 添加系统消息（居中显示，小字体灰色）
+void WebSocketChatDialog::appendSystemMessage(const QString &message) {
+    QTextCursor cursor = textEdit->textCursor();
+    cursor.movePosition(QTextCursor::End);
+    
+    // 设置段落居中，添加更大的上下间距
+    QTextBlockFormat blockFormat;
+    blockFormat.setAlignment(Qt::AlignCenter);
+    blockFormat.setTopMargin(12);     // 上边距（系统消息间距稍大）
+    blockFormat.setBottomMargin(12);  // 下边距
+    cursor.insertBlock(blockFormat);
+    
+    // 插入系统消息样式
+    QTextCharFormat charFormat;
+    charFormat.setForeground(QColor("#999999"));
+    charFormat.setBackground(QColor("#F0F0F0"));
+    charFormat.setFontPointSize(10);
+    
+    cursor.insertText(" " + message + " ", charFormat);
+    
+    scrollToBottom();
+}
+
+// 滚动到底部
+void WebSocketChatDialog::scrollToBottom() {
+    QTextCursor cursor = textEdit->textCursor();
+    cursor.movePosition(QTextCursor::End);
+    textEdit->setTextCursor(cursor);
+    textEdit->ensureCursorVisible();
 }
