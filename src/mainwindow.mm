@@ -60,7 +60,7 @@ MainWindow::MainWindow(QWidget *parent, QApplication *mapp)
     move_off->setCheckable(true);
     open_dialog->setCheckable(true);
     close_dialog->setCheckable(true);
-    close_dialog->setChecked(true);
+    open_dialog->setChecked(true);  // 默认打开对话框
     move_off->setChecked(true);
     g_move->setExclusive(true);
     m_move->addAction(move_on);
