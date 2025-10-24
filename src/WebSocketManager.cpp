@@ -487,6 +487,10 @@ void WebSocketManager::handleTTSMessage(const QJsonObject &data)
         setCurrentState(DeviceState::SPEAKING);
     } else if (state == "stop") {
         setCurrentState(DeviceState::IDLE);
+        // 说话结束，重置表情到默认状态
+        qDebug() << "TTS stopped, resetting expression to neutral";
+        emit ttsMessageReceived("", "neutral");  // 发送空文本和neutral情绪来重置表情
+        return;  // 直接返回，不再发送下面的信号
     }
     
     emit ttsMessageReceived(text, emotion);

@@ -476,63 +476,76 @@ void DeskPetIntegration::handleEmotionChange(const QString &emotion)
     // Haru 模型有 F01-F08 表情
     QString expressionName;
     
-    // 将服务器返回的情绪名称映射到 Live2D 表情
-    // 表情说明：
-    // F01 = 微笑（嘴巴）
-    // F02 = 悲伤（眉毛下垂、嘴巴张开、眼睛变化）
-    // F03 = 生气（眉毛皱起、嘴巴）
-    // F04 = 惊讶（眼睛睁大、眉毛上扬）
-    // F05 = 开心/害羞（眯眼笑）- 最明显
-    // F06-F08 = 其他表情
+    // 特殊处理：neutral 用于重置表情
+    if (emotion.isEmpty() || emotion == "neutral") {
+        qDebug() << "Resetting expression to neutral (F01)";
+        if (m_live2DManager->GetModel(0)) {
+            m_live2DManager->GetModel(0)->SetExpression("F01");  // F01 是最温和的微笑
+        }
+        return;
+    }
+    
+    // 🎭 表情映射 - 全部使用最夸张的表情（按参数数量从多到少）：
+    // F07 (12参数) = 害羞/脸红 - 眉毛复杂变化 + 脸红效果
+    // F04 (11参数) = 惊讶 - 眼睛睁大 + 眉毛大幅变化
+    // F03 (10参数) = 生气 - 眉毛皱起 + 嘴巴大变化
+    // F06 (6参数)  = 兴奋 - 眼睛放大2倍！最夸张
+    // F02 (6参数)  = 悲伤 - 眉毛下垂 + 嘴巴张开
+    // F08 (5参数)  = 疲惫 - 眼睛变小 + 嘴巴大变化
+    // F05 (4参数)  = 开心 - 眯眼笑（眼睛完全闭上）
+    // F01 (1参数)  = 微笑 - 仅嘴巴微调（不明显，避免使用）
     
     if (emotion.contains("happy", Qt::CaseInsensitive) || 
         emotion.contains("joy", Qt::CaseInsensitive) ||
         emotion.contains("开心", Qt::CaseInsensitive) ||
-        emotion.contains("高兴", Qt::CaseInsensitive)) {
-        expressionName = "F05";  // 开心表情（眯眼笑，最明显）
+        emotion.contains("高兴", Qt::CaseInsensitive) ||
+        emotion.contains("cool", Qt::CaseInsensitive)) {
+        expressionName = "F05";  // 开心 - 眯眼笑（眼睛完全闭上，非常明显）
     }
-    else if (emotion.contains("sad", Qt::CaseInsensitive) || 
-             emotion.contains("upset", Qt::CaseInsensitive) ||
-             emotion.contains("悲伤", Qt::CaseInsensitive) ||
-             emotion.contains("难过", Qt::CaseInsensitive)) {
-        expressionName = "F02";  // 悲伤表情
-    }
-    else if (emotion.contains("angry", Qt::CaseInsensitive) || 
-             emotion.contains("mad", Qt::CaseInsensitive) ||
-             emotion.contains("生气", Qt::CaseInsensitive) ||
-             emotion.contains("愤怒", Qt::CaseInsensitive)) {
-        expressionName = "F03";  // 生气表情
+    else if (emotion.contains("excited", Qt::CaseInsensitive) || 
+             emotion.contains("兴奋", Qt::CaseInsensitive) ||
+             emotion.contains("激动", Qt::CaseInsensitive)) {
+        expressionName = "F06";  // 兴奋 - 眼睛放大2倍（最夸张！）
     }
     else if (emotion.contains("surprised", Qt::CaseInsensitive) || 
              emotion.contains("shock", Qt::CaseInsensitive) ||
              emotion.contains("惊讶", Qt::CaseInsensitive) ||
              emotion.contains("吃惊", Qt::CaseInsensitive)) {
-        expressionName = "F04";  // 惊讶表情
+        expressionName = "F04";  // 惊讶 - 11个参数，非常明显
+    }
+    else if (emotion.contains("angry", Qt::CaseInsensitive) || 
+             emotion.contains("mad", Qt::CaseInsensitive) ||
+             emotion.contains("生气", Qt::CaseInsensitive) ||
+             emotion.contains("愤怒", Qt::CaseInsensitive)) {
+        expressionName = "F03";  // 生气 - 10个参数，眉毛+嘴巴大变化
     }
     else if (emotion.contains("shy", Qt::CaseInsensitive) || 
              emotion.contains("embarrassed", Qt::CaseInsensitive) ||
-             emotion.contains("害羞", Qt::CaseInsensitive)) {
-        expressionName = "F05";  // 害羞表情（同样是眯眼笑）
+             emotion.contains("害羞", Qt::CaseInsensitive) ||
+             emotion.contains("羞涩", Qt::CaseInsensitive)) {
+        expressionName = "F07";  // 害羞 - 12个参数+脸红效果（最复杂！）
     }
-    else if (emotion.contains("thinking", Qt::CaseInsensitive) || 
-             emotion.contains("confused", Qt::CaseInsensitive) ||
-             emotion.contains("思考", Qt::CaseInsensitive) ||
-             emotion.contains("疑惑", Qt::CaseInsensitive)) {
-        expressionName = "F06";  // 思考表情
-    }
-    else if (emotion.contains("excited", Qt::CaseInsensitive) || 
-             emotion.contains("兴奋", Qt::CaseInsensitive)) {
-        expressionName = "F07";  // 兴奋表情
+    else if (emotion.contains("sad", Qt::CaseInsensitive) || 
+             emotion.contains("upset", Qt::CaseInsensitive) ||
+             emotion.contains("悲伤", Qt::CaseInsensitive) ||
+             emotion.contains("难过", Qt::CaseInsensitive)) {
+        expressionName = "F02";  // 悲伤 - 6个参数，明显
     }
     else if (emotion.contains("tired", Qt::CaseInsensitive) || 
              emotion.contains("sleepy", Qt::CaseInsensitive) ||
              emotion.contains("累", Qt::CaseInsensitive) ||
              emotion.contains("疲惫", Qt::CaseInsensitive)) {
-        expressionName = "F08";  // 疲惫表情
+        expressionName = "F08";  // 疲惫 - 5个参数，眼睛变小
+    }
+    else if (emotion.contains("thinking", Qt::CaseInsensitive) || 
+             emotion.contains("confused", Qt::CaseInsensitive) ||
+             emotion.contains("思考", Qt::CaseInsensitive) ||
+             emotion.contains("疑惑", Qt::CaseInsensitive)) {
+        expressionName = "F04";  // 思考 - 用惊讶表情
     }
     else {
-        // 默认使用微笑
-        expressionName = "F01";  // 默认微笑表情
+        // 默认使用眯眼笑（比F01更明显）
+        expressionName = "F05";  // 默认开心表情
     }
     
     // 调用 Live2D 管理器设置表情
