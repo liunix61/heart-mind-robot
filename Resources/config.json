@@ -14,7 +14,7 @@
     "systemtray": "SystemIcon.png",
     "userdata": {
         "current_model": "Haru",
-        "dialog_height": 600,
+        "dialog_height": 300,
         "dialog_width": 429,
         "dialog_x": 940,
         "dialog_y": 372,

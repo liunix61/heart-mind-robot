@@ -55,21 +55,32 @@ bool OpusEncoder::initialize(int sampleRate, int channels, int application)
         return false;
     }
     
-    // 设置默认参数
-    // 设置比特率为自动
+    // 设置默认参数（优化用于语音识别）
+    // 设置比特率为自动（稍后可手动调整）
     opus_encoder_ctl(m_encoder, OPUS_SET_BITRATE(OPUS_AUTO));
     
     // 设置VBR（可变比特率）
     opus_encoder_ctl(m_encoder, OPUS_SET_VBR(1));
     
-    // 设置复杂度（0-10，10为最高质量）
+    // 设置VBR约束模式（在保证质量的同时控制最大比特率）
+    opus_encoder_ctl(m_encoder, OPUS_SET_VBR_CONSTRAINT(1));
+    
+    // 设置复杂度（0-10，10为最高质量）- 用于语音识别保持最高质量
     opus_encoder_ctl(m_encoder, OPUS_SET_COMPLEXITY(10));
     
     // 启用FEC（前向纠错）以提高抗丢包能力
     opus_encoder_ctl(m_encoder, OPUS_SET_INBAND_FEC(1));
     
-    // 设置DTX（不连续传输）以节省带宽
-    opus_encoder_ctl(m_encoder, OPUS_SET_DTX(0)); // 语音场景建议关闭
+    // 设置DTX（不连续传输）为关闭 - 语音识别不建议使用DTX
+    opus_encoder_ctl(m_encoder, OPUS_SET_DTX(0));
+    
+    // 对于AUDIO应用，设置信号类型为语音
+    if (application == OPUS_APPLICATION_AUDIO) {
+        opus_encoder_ctl(m_encoder, OPUS_SET_SIGNAL(OPUS_SIGNAL_VOICE));
+    }
+    
+    // 设置包丢失百分比期望（0表示理想网络）
+    opus_encoder_ctl(m_encoder, OPUS_SET_PACKET_LOSS_PERC(0));
     
     m_initialized = true;
     
@@ -170,6 +181,33 @@ bool OpusEncoder::setVBR(bool enabled)
     }
     
     qDebug() << "VBR" << (enabled ? "enabled" : "disabled");
+    return true;
+}
+
+bool OpusEncoder::setBandwidth(int bandwidth)
+{
+    if (!m_encoder || !m_initialized) {
+        qWarning() << "OpusEncoder not initialized";
+        return false;
+    }
+    
+    int error = opus_encoder_ctl(m_encoder, OPUS_SET_MAX_BANDWIDTH(bandwidth));
+    if (error != OPUS_OK) {
+        qWarning() << "Failed to set bandwidth:" << opus_strerror(error);
+        return false;
+    }
+    
+    QString bandwidthName;
+    switch(bandwidth) {
+        case OPUS_BANDWIDTH_NARROWBAND: bandwidthName = "Narrowband (4kHz)"; break;
+        case OPUS_BANDWIDTH_MEDIUMBAND: bandwidthName = "Mediumband (6kHz)"; break;
+        case OPUS_BANDWIDTH_WIDEBAND: bandwidthName = "Wideband (8kHz)"; break;
+        case OPUS_BANDWIDTH_SUPERWIDEBAND: bandwidthName = "Super-wideband (12kHz)"; break;
+        case OPUS_BANDWIDTH_FULLBAND: bandwidthName = "Fullband (20kHz)"; break;
+        default: bandwidthName = "Auto"; break;
+    }
+    
+    qDebug() << "Bandwidth set to:" << bandwidthName;
     return true;
 }
 

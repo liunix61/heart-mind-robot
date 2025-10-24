@@ -28,6 +28,9 @@ public:
     // 设置VBR (Variable Bitrate)
     bool setVBR(bool enabled);
     
+    // 设置带宽模式
+    bool setBandwidth(int bandwidth);
+    
     // 检查是否已初始化
     bool isInitialized() const { return m_encoder != nullptr; }
     

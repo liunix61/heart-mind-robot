@@ -84,24 +84,38 @@ bool AudioInputManager::initialize(int sampleRate, int channels, int frameDurati
 
 bool AudioInputManager::setupOpusEncoder()
 {
-    if (!m_opusEncoder->initialize(m_sampleRate, m_channels, OPUS_APPLICATION_VOIP)) {
+    // 使用 OPUS_APPLICATION_AUDIO 而不是 VOIP，提供更好的音质用于语音识别
+    if (!m_opusEncoder->initialize(m_sampleRate, m_channels, OPUS_APPLICATION_AUDIO)) {
         qWarning() << "Failed to initialize Opus encoder";
         return false;
     }
     
-    // 为语音设置合适的比特率
-    int bitrate = 24000;
+    // 设置更高的比特率以提高语音识别准确度
+    int bitrate = 32000;  // 提高默认比特率
     if (m_sampleRate == 8000) {
-        bitrate = 12000;
+        bitrate = 20000;  // 8kHz时使用20kbps
+    } else if (m_sampleRate == 16000) {
+        bitrate = 32000;  // 16kHz时使用32kbps（提高以改善识别）
     } else if (m_sampleRate >= 24000) {
-        bitrate = 32000;
+        bitrate = 48000;  // 24kHz+时使用48kbps
     }
     
     m_opusEncoder->setBitrate(bitrate);
     m_opusEncoder->setComplexity(10);
     m_opusEncoder->setVBR(true);
     
-    qDebug() << "Opus encoder configured - bitrate:" << bitrate;
+    // 设置带宽为宽带（WB）或超宽带（SWB）以保留更多语音细节
+    if (m_sampleRate >= 16000) {
+        m_opusEncoder->setBandwidth(OPUS_BANDWIDTH_WIDEBAND);  // 8kHz带宽
+    }
+    if (m_sampleRate >= 24000) {
+        m_opusEncoder->setBandwidth(OPUS_BANDWIDTH_SUPERWIDEBAND);  // 12kHz带宽
+    }
+    
+    qDebug() << "Opus encoder configured for speech recognition:";
+    qDebug() << "  Application: AUDIO (better quality for ASR)";
+    qDebug() << "  Bitrate:" << bitrate << "bps";
+    qDebug() << "  Sample rate:" << m_sampleRate << "Hz";
     
     return true;
 }
@@ -199,10 +213,21 @@ bool AudioInputManager::startRecording()
         qDebug() << "AudioInputManager: Permission after request:" << hasPermission;
         
         if (!hasPermission) {
-            emit errorOccurred("麦克风权限未授予，请在系统设置中允许访问");
+            QString permissionMsg = QString("麦克风权限未授予\n\n"
+                                           "请按以下步骤操作：\n\n"
+                                           "1. 前往 系统偏好设置 -> 安全性与隐私 -> 隐私 -> 麦克风\n"
+                                           "2. 确保 HeartMindRobot 已勾选\n\n"
+                                           "如果列表中没有该应用：\n"
+                                           "3. 打开终端，执行以下命令：\n"
+                                           "   sudo xattr -rd com.apple.quarantine /Applications/HeartMindRobot.app\n"
+                                           "4. 重新启动应用\n\n"
+                                           "注意：未签名的应用可能需要额外的安全设置才能访问麦克风。");
+            emit errorOccurred(permissionMsg);
             return false;
         }
     }
+    
+    qDebug() << "Microphone permission OK, proceeding to open audio stream...";
     
     // 配置输入参数
     PaStreamParameters inputParameters;
@@ -236,8 +261,32 @@ bool AudioInputManager::startRecording()
     );
     
     if (err != paNoError) {
-        qWarning() << "Failed to open audio stream:" << Pa_GetErrorText(err);
-        emit errorOccurred(QString("Failed to open audio stream: %1").arg(Pa_GetErrorText(err)));
+        QString errorMsg = Pa_GetErrorText(err);
+        qCritical() << "Failed to open audio stream:" << errorMsg;
+        qCritical() << "PortAudio Error Code:" << err;
+        qCritical() << "Device:" << deviceInfo->name;
+        qCritical() << "Sample Rate:" << m_sampleRate;
+        qCritical() << "Channels:" << m_channels;
+        
+        // 提供更详细的错误信息
+        QString userMsg = QString("音频流打开失败\n\n"
+                                 "错误信息: %1\n"
+                                 "错误代码: %2\n"
+                                 "设备: %3\n\n"
+                                 "可能的原因：\n"
+                                 "1. 麦克风权限未正确授予\n"
+                                 "2. 应用未签名，被系统安全限制\n"
+                                 "3. 其他应用正在占用麦克风\n\n"
+                                 "解决方法：\n"
+                                 "1. 前往 系统偏好设置 -> 安全性与隐私 -> 隐私 -> 麦克风\n"
+                                 "2. 确保 HeartMindRobot 已勾选\n"
+                                 "3. 如果列表中没有该应用，请先执行：\n"
+                                 "   sudo xattr -rd com.apple.quarantine /Applications/HeartMindRobot.app")
+                         .arg(errorMsg)
+                         .arg(err)
+                         .arg(deviceInfo->name);
+        
+        emit errorOccurred(userMsg);
         return false;
     }
     

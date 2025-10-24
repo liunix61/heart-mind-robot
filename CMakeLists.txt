@@ -146,6 +146,16 @@ if(APPLE)
         MACOSX_BUNDLE_ICON_FILE AppIcon.icns
         RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
     )
+    
+    # 复制Resources目录到应用包（用于开发测试）
+    add_custom_command(TARGET HeartMindRobot POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E make_directory 
+            $<TARGET_FILE_DIR:HeartMindRobot>/../Resources
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            ${CMAKE_CURRENT_SOURCE_DIR}/Resources
+            $<TARGET_FILE_DIR:HeartMindRobot>/../Resources
+        COMMENT "Copying Resources directory to app bundle for development"
+    )
 else()
     add_executable(HeartMindRobot ${PLATFORM_SOURCES})
     set_target_properties(HeartMindRobot PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
