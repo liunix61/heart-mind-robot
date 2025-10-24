@@ -197,6 +197,28 @@ void AudioPlaybackThread::stopPlayback() {
     wait();
 }
 
+void AudioPlaybackThread::clearAudioQueue() {
+    CF_LOG_INFO("AudioPlaybackThread: Clearing audio queue");
+    
+    // 清空待处理的音频队列
+    {
+        QMutexLocker locker(&m_queueMutex);
+        int clearedCount = m_audioQueue.size();
+        m_audioQueue.clear();
+        CF_LOG_INFO("AudioPlaybackThread: Cleared %d queued audio chunks", clearedCount);
+    }
+    
+    // 停止并清空AudioEngineManager的播放队列
+    if (m_audioEngineManager) {
+        @autoreleasepool {
+            AudioEngineManager *manager = (AudioEngineManager*)m_audioEngineManager;
+            [manager stop];
+            [manager start];  // 重新启动以准备新的音频
+            CF_LOG_INFO("AudioPlaybackThread: Audio engine reset");
+        }
+    }
+}
+
 void AudioPlaybackThread::run() {
     m_running = true;
     
@@ -329,5 +351,24 @@ void AudioPlayer::playReceivedAudioData(const QByteArray &audioData) {
         CF_LOG_DEBUG("Enqueued audio data for playback, size: %d bytes", audioData.size());
     } else {
         CF_LOG_ERROR("Playback thread not available");
+    }
+}
+
+void AudioPlayer::clearAudioQueue() {
+    CF_LOG_INFO("AudioPlayer: Clearing audio queue for interruption");
+    
+    // 停止当前本地音频播放
+    if (audioPlayer) {
+        [(AVAudioPlayer*)audioPlayer stop];
+        audioPlayer = nil;
+        CF_LOG_INFO("AudioPlayer: Stopped local audio playback");
+    }
+    
+    // 清空播放线程的音频队列
+    if (m_playbackThread) {
+        m_playbackThread->clearAudioQueue();
+        CF_LOG_INFO("AudioPlayer: Audio queue cleared successfully");
+    } else {
+        CF_LOG_ERROR("AudioPlayer: Playback thread not available");
     }
 }

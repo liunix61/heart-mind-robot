@@ -201,6 +201,19 @@ void DeskPetIntegration::sendTextMessage(const QString &text)
         return;
     }
     
+    // 检查是否正在说话，如果是则中断
+    if (isSpeaking() || getCurrentDeviceState() == DeviceState::SPEAKING) {
+        qDebug() << "DeskPetIntegration: User interruption detected, clearing audio queue";
+        
+        // 清空音频队列
+        if (m_audioPlayer) {
+            m_audioPlayer->clearAudioQueue();
+        }
+        
+        // 发送中断消息到服务器
+        m_controller->abortSpeaking();
+    }
+    
     qDebug() << "Sending text message:" << text;
     m_controller->sendTextMessage(text);
 }

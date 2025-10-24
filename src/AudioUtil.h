@@ -18,6 +18,7 @@ public:
     
     void enqueueAudio(const QByteArray &audioData);
     void stopPlayback();
+    void clearAudioQueue();  // 新增：清空音频队列
     
 signals:
     // 当音频解码完成后发射，用于口型同步
@@ -48,6 +49,9 @@ public:
     
     // 新增：播放接收到的Opus编码音频数据 - 异步解码并播放
     void playReceivedAudioData(const QByteArray &audioData);
+    
+    // 新增：清空音频队列（用于中断对话）
+    void clearAudioQueue();
     
     // 获取音频播放线程（用于连接信号）
     AudioPlaybackThread* getPlaybackThread() { return m_playbackThread; }

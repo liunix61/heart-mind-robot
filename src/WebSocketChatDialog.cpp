@@ -176,7 +176,8 @@ void WebSocketChatDialog::sendMessage() {
         textEdit->setTextCursor(cursor);
         
         if (m_deskPetIntegration && m_deskPetIntegration->isConnected()) {
-            // 使用WebSocket发送消息
+            // 检查是否正在说话，中断逻辑已在 DeskPetIntegration::sendTextMessage 中处理
+            // 直接发送消息即可
             m_deskPetIntegration->sendTextMessage(message);
             qDebug() << "WebSocket: Sending message:" << message;
         } else {
