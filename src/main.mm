@@ -107,10 +107,27 @@ int main(int argc, char *argv[]) {
     }
     
     // 初始化资源加载器
+    qDebug() << "=== Initializing resource loader ===";
     if (!resource_loader::get_instance().initialize()) {
-        QMessageBox::critical(nullptr, "错误", "资源加载失败，程序无法启动");
+        // 获取详细的错误信息
+        QString errorMsg = QString("资源加载失败，程序无法启动\n\n"
+                                   "应用目录: %1\n"
+                                   "资源路径: %2\n"
+                                   "config.json: %3\n\n"
+                                   "请检查应用是否被移动或损坏。\n"
+                                   "如果问题持续，请尝试重新下载安装。")
+                          .arg(QCoreApplication::applicationDirPath())
+                          .arg(resource_loader::get_instance().get_resoures_path())
+                          .arg(resource_loader::get_instance().get_config_path());
+        
+        qCritical() << "Resource loader initialization failed";
+        qCritical() << "App Dir:" << QCoreApplication::applicationDirPath();
+        qCritical() << "Resource Path:" << resource_loader::get_instance().get_resoures_path();
+        
+        QMessageBox::critical(nullptr, "错误", errorMsg);
         return 1;
     }
+    qDebug() << "Resource loader initialized successfully";
     
     // 创建并显示主窗口
     MainWindow w(nullptr, &a);

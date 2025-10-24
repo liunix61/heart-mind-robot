@@ -34,7 +34,7 @@ bool resource_loader::initialize() {
     // 检查Resources目录是否存在
     QDir resourceDir(resource_file_path);
     if (!resourceDir.exists()) {
-        CF_LOG_WARN("Bundle Resources not found at: %s", resource_file_path.toStdString().c_str());
+        CF_LOG_INFO("Bundle Resources not found at: %s", resource_file_path.toStdString().c_str());
         // 开发模式：尝试使用项目根目录
         QDir dir(appDirPath);
         // 从 build/bin/xxx.app/Contents/MacOS 或 build/bin 向上找到项目根目录
@@ -50,13 +50,39 @@ bool resource_loader::initialize() {
         }
     }
     
-    // 验证config.json是否存在
-    QFile file(resource_file_path + "/config.json");
-
-    if (!file.open(QIODevice::ReadOnly)) {
-        CF_LOG_ERROR("open config.json failed, path:%s", (resource_file_path + "/config.json").toStdString().c_str());
+    // 最终验证：检查Resources目录是否真的存在且可访问
+    QDir finalCheck(resource_file_path);
+    if (!finalCheck.exists()) {
+        CF_LOG_ERROR("CRITICAL: Resources directory does not exist: %s", resource_file_path.toStdString().c_str());
+        CF_LOG_ERROR("Application will not be able to load any resources!");
         return false;
     }
+    
+    CF_LOG_INFO("Final resource path confirmed: %s", resource_file_path.toStdString().c_str());
+    CF_LOG_INFO("Resources directory exists: YES");
+    
+    // 列出Resources目录内容用于诊断
+    QStringList resourceFiles = finalCheck.entryList(QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot);
+    CF_LOG_INFO("Resources directory contents: %s", resourceFiles.join(", ").toStdString().c_str());
+    
+    // 验证config.json是否存在
+    QString configPath = resource_file_path + "/config.json";
+    QFile file(configPath);
+    
+    if (!QFile::exists(configPath)) {
+        CF_LOG_ERROR("config.json does not exist at path: %s", configPath.toStdString().c_str());
+        return false;
+    }
+
+    if (!file.open(QIODevice::ReadOnly)) {
+        CF_LOG_ERROR("open config.json failed (file exists but cannot open), path: %s", configPath.toStdString().c_str());
+        CF_LOG_ERROR("File permissions: readable=%d, writable=%d", 
+                     QFileInfo(configPath).isReadable(), 
+                     QFileInfo(configPath).isWritable());
+        return false;
+    }
+    
+    CF_LOG_INFO("Successfully opened config.json");
     QByteArray data = file.readAll();
     file.close();
     QJsonParseError json_error;

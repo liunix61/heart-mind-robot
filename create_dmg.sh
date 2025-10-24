@@ -109,6 +109,23 @@ if [ -f "/usr/local/lib/libportaudio.dylib" ]; then
     chmod +w "$DIST_FRAMEWORKS"/libportaudio*.dylib 2>/dev/null || true
 fi
 
+# 复制 WebRTC Audio Processing 库
+echo_info "检测系统架构并复制 WebRTC 库..."
+ARCH=$(uname -m)
+if [ "$ARCH" = "arm64" ]; then
+    WEBRTC_LIB="$PROJECT_ROOT/third/webrtc_apm/macos/arm64/libwebrtc_apm.dylib"
+else
+    WEBRTC_LIB="$PROJECT_ROOT/third/webrtc_apm/macos/x64/libwebrtc_apm.dylib"
+fi
+
+if [ -f "$WEBRTC_LIB" ]; then
+    echo_info "  -> 复制 libwebrtc_apm.dylib (架构: $ARCH)"
+    cp "$WEBRTC_LIB" "$DIST_FRAMEWORKS/libwebrtc_apm.dylib"
+    chmod +w "$DIST_FRAMEWORKS/libwebrtc_apm.dylib" 2>/dev/null || true
+else
+    echo_warn "  -> 未找到 WebRTC 库: $WEBRTC_LIB"
+fi
+
 # 使用 macdeployqt 处理 Qt 依赖
 echo_info "使用 macdeployqt 处理 Qt 依赖..."
 macdeployqt "$DIST_DIR/${APP_NAME}.app" -verbose=1
@@ -197,6 +214,12 @@ if [ -f "$DIST_FRAMEWORKS/libLive2DCubismCore.dylib" ]; then
     echo_info "  -> 修复 Live2D 路径"
     install_name_tool -change "$PROJECT_ROOT/third/live2d/dll/macos/libLive2DCubismCore.dylib" "@executable_path/../Frameworks/libLive2DCubismCore.dylib" "$EXECUTABLE" 2>/dev/null || true
     install_name_tool -id "@executable_path/../Frameworks/libLive2DCubismCore.dylib" "$DIST_FRAMEWORKS/libLive2DCubismCore.dylib" 2>/dev/null || true
+fi
+
+# 修复 WebRTC 路径
+if [ -f "$DIST_FRAMEWORKS/libwebrtc_apm.dylib" ]; then
+    echo_info "  -> 修复 WebRTC 路径"
+    install_name_tool -id "@executable_path/../Frameworks/libwebrtc_apm.dylib" "$DIST_FRAMEWORKS/libwebrtc_apm.dylib" 2>/dev/null || true
 fi
 
 # 修复 Framework 库中的路径
