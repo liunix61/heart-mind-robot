@@ -390,9 +390,10 @@ void SimpleActivationWindow::startActivationProcess()
     qDebug() << "发送首次激活请求...";
     sendActivationRequest();
     
-    // 启动超时定时器
-    qDebug() << "启动激活超时定时器 (30秒)";
-    m_activationTimer->start();
+    // 移除超时限制，允许用户一直等待直到激活成功
+    // 用户可以随时关闭窗口退出
+    // qDebug() << "启动激活超时定时器 (30秒)";
+    // m_activationTimer->start();
     
     // 启动状态检查定时器
     qDebug() << "启动状态检查定时器 (5秒间隔)";
@@ -617,11 +618,14 @@ void SimpleActivationWindow::onNetworkReplyFinished()
 
 void SimpleActivationWindow::onActivationTimeout()
 {
-    qDebug() << "Activation timeout";
-    m_isActivating = false;
-    m_statusTimer->stop();
-    updateUI();
-    showMessage("激活超时，请检查网络连接");
+    // 已移除超时限制，此函数保留以防需要重新启用
+    // 如果需要超时提示但不中断激活检查，可以只显示消息而不停止定时器
+    qDebug() << "Activation timeout (disabled)";
+    // 不再停止状态检查，让用户可以一直等待直到激活成功
+    // m_isActivating = false;
+    // m_statusTimer->stop();
+    // updateUI();
+    // showMessage("激活超时，请检查网络连接");
 }
 
 void SimpleActivationWindow::showMessage(const QString& message)
