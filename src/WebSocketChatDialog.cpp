@@ -216,7 +216,28 @@ void WebSocketChatDialog::onWebSocketError(const QString &error) {
 }
 
 void WebSocketChatDialog::onBotReplyTextMessage(const QString &text) {
-    BotReply(text);
+    // 过滤纯表情消息（只包含emoji的消息）
+    // 因为表情已经通过Live2D模型表现，不需要在对话框中显示
+    QString trimmedText = text.trimmed();
+    
+    // 检查是否是纯表情（只包含emoji字符）
+    bool isOnlyEmoji = true;
+    if (!trimmedText.isEmpty()) {
+        for (const QChar &c : trimmedText) {
+            // 如果包含非emoji字符（正常文字、数字等），则不是纯表情
+            if (c.unicode() < 0x1F300 || c.unicode() > 0x1F9FF) {
+                if (!c.isSpace()) {  // 忽略空格
+                    isOnlyEmoji = false;
+                    break;
+                }
+            }
+        }
+    }
+    
+    // 只显示非纯表情消息
+    if (!isOnlyEmoji && !trimmedText.isEmpty()) {
+        BotReply(text);
+    }
 }
 
 void WebSocketChatDialog::onBotReplyAudioData(const QByteArray &audioData) {
@@ -227,7 +248,9 @@ void WebSocketChatDialog::onBotReplyAudioData(const QByteArray &audioData) {
 }
 
 void WebSocketChatDialog::onPetEmotionChanged(const QString &emotion) {
-    textEdit->append("Bot:\n [桌宠情绪变化: " + emotion + "]");
+    // 情绪变化已经通过Live2D表情展示，不需要在对话框中显示
+    Q_UNUSED(emotion);
+    // textEdit->append("Bot:\n [桌宠情绪变化: " + emotion + "]");
 }
 
 void WebSocketChatDialog::onPetMotionChanged(const QString &motion) {
