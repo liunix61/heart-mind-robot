@@ -76,6 +76,7 @@ signals:
     
     // 消息信号
     void messageReceived(const QString &message);
+    void sttReceived(const QString &text);  // 语音识别结果
     void audioReceived(const QByteArray &audioData);
     void emotionChanged(const QString &emotion);
     

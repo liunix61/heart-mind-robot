@@ -33,7 +33,9 @@ public:
 
 private slots:
     void sendMessage();
-    void toggleVoiceInput();
+    void toggleVoiceInput();  // 保留但不使用
+    void startVoiceRecording();  // 长按开始
+    void stopVoiceRecording();   // 松开停止
     void onAudioDataEncoded(const QByteArray& encodedData);
     void onRecordingStateChanged(bool isRecording);
     void onAudioError(const QString& error);
@@ -41,6 +43,7 @@ private slots:
     void onWebSocketDisconnected();
     void onWebSocketError(const QString &error);
     void onBotReplyTextMessage(const QString &text);
+    void onSTTReceived(const QString &text);  // 语音识别结果
     void onBotReplyAudioData(const QByteArray &audioData);
     void onPetEmotionChanged(const QString &emotion);
     void onPetMotionChanged(const QString &motion);

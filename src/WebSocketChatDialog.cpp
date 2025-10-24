@@ -86,9 +86,10 @@ WebSocketChatDialog::WebSocketChatDialog(QWidget *parent) : QDialog(parent) {
     );
     inputLayout->addWidget(sendButton);
     
-    // 语音输入按钮
+    // 语音输入按钮（长按录音）
     voiceButton = new QPushButton("🎤", this);
     voiceButton->setFixedSize(34, 34);
+    voiceButton->setToolTip("长按录音，松开发送");  // 添加提示
     voiceButton->setStyleSheet(
             "QPushButton {"
             "    background-color: #4CAF50;"
@@ -112,7 +113,10 @@ WebSocketChatDialog::WebSocketChatDialog(QWidget *parent) : QDialog(parent) {
     // 连接信号槽
     connect(sendButton, &QPushButton::clicked, this, &WebSocketChatDialog::sendMessage);
     connect(inputLine, &QLineEdit::returnPressed, this, &WebSocketChatDialog::sendMessage);
-    connect(voiceButton, &QPushButton::clicked, this, &WebSocketChatDialog::toggleVoiceInput);
+    
+    // 使用长按模式：按下开始录音，松开停止录音
+    connect(voiceButton, &QPushButton::pressed, this, &WebSocketChatDialog::startVoiceRecording);
+    connect(voiceButton, &QPushButton::released, this, &WebSocketChatDialog::stopVoiceRecording);
     
     // 设置音频输入
     setupAudioInput();
@@ -158,6 +162,8 @@ void WebSocketChatDialog::setupConnections() {
     // 连接消息接收信号
     connect(m_deskPetIntegration, &DeskPetIntegration::messageReceived, 
             this, &WebSocketChatDialog::onBotReplyTextMessage);
+    connect(m_deskPetIntegration, &DeskPetIntegration::sttReceived,
+            this, &WebSocketChatDialog::onSTTReceived);
     connect(m_deskPetIntegration, &DeskPetIntegration::audioReceived, 
             this, &WebSocketChatDialog::onBotReplyAudioData);
     
@@ -218,6 +224,20 @@ void WebSocketChatDialog::onWebSocketError(const QString &error) {
     m_connected = false;
     updateConnectionStatus();
     textEdit->append("Bot:\n WebSocket连接错误: " + error);
+}
+
+void WebSocketChatDialog::onSTTReceived(const QString &text) {
+    qDebug() << "STT received:" << text;
+    
+    if (!text.isEmpty()) {
+        // 显示用户说的话
+        textEdit->append("You:\n " + text);
+        
+        // 滚动到底部
+        QTextCursor cursor = textEdit->textCursor();
+        cursor.movePosition(QTextCursor::End);
+        textEdit->setTextCursor(cursor);
+    }
 }
 
 void WebSocketChatDialog::onBotReplyTextMessage(const QString &text) {
@@ -350,34 +370,50 @@ void WebSocketChatDialog::setupAudioInput() {
 }
 
 void WebSocketChatDialog::toggleVoiceInput() {
+    // 这个方法不再使用，改用长按模式
+    // 保留函数以防兼容性问题
+}
+
+void WebSocketChatDialog::startVoiceRecording() {
     if (!m_audioInputManager || !m_deskPetIntegration) {
         return;
     }
     
     if (m_isRecording) {
-        // 停止录音
-        m_audioInputManager->stopRecording();
-        
-        // 发送停止监听消息到服务器
-        m_deskPetIntegration->stopListening();
-        
-        qDebug() << "Voice input stopped";
-    } else {
-        // 发送开始监听消息到服务器（必须先发送才能接收音频）
-        m_deskPetIntegration->startListening();
-        qDebug() << "Sent startListening to server";
-        
-        // 开始录音
-        if (!m_audioInputManager->startRecording()) {
-            textEdit->append("Bot:\n 无法开始录音，请检查麦克风权限");
-            qWarning() << "Failed to start recording";
-            // 如果录音失败，也要停止监听
-            m_deskPetIntegration->stopListening();
-            return;
-        }
-        textEdit->append("You:\n [正在录音...]");
-        qDebug() << "Voice input started";
+        return; // 已经在录音中
     }
+    
+    // 发送开始监听消息到服务器（必须先发送才能接收音频）
+    m_deskPetIntegration->startListening();
+    qDebug() << "Sent startListening to server";
+    
+    // 开始录音
+    if (!m_audioInputManager->startRecording()) {
+        qWarning() << "Failed to start recording";
+        // 如果录音失败，也要停止监听
+        m_deskPetIntegration->stopListening();
+        return;
+    }
+    
+    qDebug() << "Voice input started (press and hold)";
+}
+
+void WebSocketChatDialog::stopVoiceRecording() {
+    if (!m_audioInputManager || !m_deskPetIntegration) {
+        return;
+    }
+    
+    if (!m_isRecording) {
+        return; // 没有在录音
+    }
+    
+    // 停止录音
+    m_audioInputManager->stopRecording();
+    
+    // 发送停止监听消息到服务器
+    m_deskPetIntegration->stopListening();
+    
+    qDebug() << "Voice input stopped (released)";
 }
 
 void WebSocketChatDialog::onAudioDataEncoded(const QByteArray& encodedData) {
@@ -397,16 +433,7 @@ void WebSocketChatDialog::onAudioDataEncoded(const QByteArray& encodedData) {
 void WebSocketChatDialog::onRecordingStateChanged(bool isRecording) {
     m_isRecording = isRecording;
     updateVoiceButtonState();
-    
-    if (!isRecording) {
-        textEdit->append("You:\n [录音结束，等待识别结果...]");
-        
-        // 确保发送停止监听消息
-        if (m_deskPetIntegration) {
-            m_deskPetIntegration->stopListening();
-            qDebug() << "Sent stopListening to server after recording ended";
-        }
-    }
+    // 不再显示录音状态文本
 }
 
 void WebSocketChatDialog::onAudioError(const QString& error) {
@@ -415,32 +442,7 @@ void WebSocketChatDialog::onAudioError(const QString& error) {
 }
 
 void WebSocketChatDialog::updateVoiceButtonState() {
-    if (m_isRecording) {
-        voiceButton->setText("⏹");
-        voiceButton->setStyleSheet(
-                "QPushButton {"
-                "    background-color: #E53935;"
-                "    color: white;"
-                "    border: 1px solid #E53935;"
-                "    border-radius: 5px;"
-                "    padding: 5px;"
-                "    font-size: 16px;"
-                "}"
-        );
-    } else {
-        voiceButton->setText("🎤");
-        voiceButton->setStyleSheet(
-                "QPushButton {"
-                "    background-color: #4CAF50;"
-                "    color: white;"
-                "    border: 1px solid #4CAF50;"
-                "    border-radius: 5px;"
-                "    padding: 5px;"
-                "    font-size: 16px;"
-                "}"
-                "QPushButton:hover {"
-                "    background-color: #45A049;"
-                "}"
-        );
-    }
+    // 长按模式下，按钮状态由CSS的:pressed自动处理
+    // 不需要额外的状态切换
+    // 按钮始终保持麦克风图标
 }

@@ -685,6 +685,10 @@ void DeskPetIntegration::onControllerSTTReceived(const QString &text)
         qDebug() << "*** User speech detected (STT) - enabling lip sync ***";
         m_lipSyncEnabled = true;
     }
+    
+    // 转发STT结果信号
+    qDebug() << "STT received, forwarding text:" << text;
+    emit sttReceived(text);
 }
 
 void DeskPetIntegration::onControllerAudioReceived(const QByteArray &audioData)
