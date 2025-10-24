@@ -350,19 +350,29 @@ void WebSocketChatDialog::setupAudioInput() {
 }
 
 void WebSocketChatDialog::toggleVoiceInput() {
-    if (!m_audioInputManager) {
+    if (!m_audioInputManager || !m_deskPetIntegration) {
         return;
     }
     
     if (m_isRecording) {
         // 停止录音
         m_audioInputManager->stopRecording();
+        
+        // 发送停止监听消息到服务器
+        m_deskPetIntegration->stopListening();
+        
         qDebug() << "Voice input stopped";
     } else {
+        // 发送开始监听消息到服务器（必须先发送才能接收音频）
+        m_deskPetIntegration->startListening();
+        qDebug() << "Sent startListening to server";
+        
         // 开始录音
         if (!m_audioInputManager->startRecording()) {
             textEdit->append("Bot:\n 无法开始录音，请检查麦克风权限");
             qWarning() << "Failed to start recording";
+            // 如果录音失败，也要停止监听
+            m_deskPetIntegration->stopListening();
             return;
         }
         textEdit->append("You:\n [正在录音...]");
@@ -389,7 +399,13 @@ void WebSocketChatDialog::onRecordingStateChanged(bool isRecording) {
     updateVoiceButtonState();
     
     if (!isRecording) {
-        textEdit->append("You:\n [录音结束]");
+        textEdit->append("You:\n [录音结束，等待识别结果...]");
+        
+        // 确保发送停止监听消息
+        if (m_deskPetIntegration) {
+            m_deskPetIntegration->stopListening();
+            qDebug() << "Sent stopListening to server after recording ended";
+        }
     }
 }
 

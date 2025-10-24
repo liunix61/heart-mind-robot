@@ -1,15 +1,12 @@
 #include "AudioInputManager.hpp"
 #include "AudioPermission.h"
 #include <QDebug>
-#include <QMediaDevices>
-#include <QAudioDevice>
-#include <QCoreApplication>
 #include <cstring>
 
 AudioInputManager::AudioInputManager(QObject *parent)
     : QObject(parent)
-    , m_audioSource(nullptr)
-    , m_audioDevice(nullptr)
+    , m_stream(nullptr)
+    , m_paInitialized(false)
     , m_opusEncoder(std::make_unique<OpusEncoder>())
     , m_webrtcProcessor(std::make_unique<webrtc_apm::WebRTCAudioProcessor>())
     , m_webrtcEnabled(false)
@@ -17,7 +14,6 @@ AudioInputManager::AudioInputManager(QObject *parent)
     , m_channels(1)
     , m_frameDurationMs(20)
     , m_frameSize(320)
-    , m_frameSizeBytes(640)
     , m_initialized(false)
     , m_isRecording(false)
 {
@@ -27,9 +23,9 @@ AudioInputManager::~AudioInputManager()
 {
     stopRecording();
     
-    if (m_audioSource) {
-        delete m_audioSource;
-        m_audioSource = nullptr;
+    if (m_paInitialized) {
+        Pa_Terminate();
+        m_paInitialized = false;
     }
 }
 
@@ -46,14 +42,29 @@ bool AudioInputManager::initialize(int sampleRate, int channels, int frameDurati
     
     // 计算帧大小
     m_frameSize = OpusEncoder::getFrameSizeForDuration(sampleRate, frameDurationMs);
-    m_frameSizeBytes = m_frameSize * sizeof(int16_t) * channels;
     
-    qDebug() << "AudioInputManager - 帧大小:" << m_frameSize << "samples," << m_frameSizeBytes << "bytes";
+    qDebug() << "AudioInputManager - 帧大小:" << m_frameSize << "samples";
+    qDebug() << "AudioInputManager - 采样率:" << m_sampleRate << "Hz";
+    qDebug() << "AudioInputManager - 声道:" << m_channels;
     
-    // 设置音频格式
-    if (!setupAudioFormat()) {
-        qWarning() << "Failed to setup audio format";
+    // 初始化PortAudio
+    PaError err = Pa_Initialize();
+    if (err != paNoError) {
+        qWarning() << "Failed to initialize PortAudio:" << Pa_GetErrorText(err);
         return false;
+    }
+    m_paInitialized = true;
+    qDebug() << "PortAudio initialized successfully";
+    
+    // 列出可用的音频设备
+    int numDevices = Pa_GetDeviceCount();
+    qDebug() << "Available audio devices:" << numDevices;
+    for (int i = 0; i < numDevices; i++) {
+        const PaDeviceInfo* deviceInfo = Pa_GetDeviceInfo(i);
+        if (deviceInfo->maxInputChannels > 0) {
+            qDebug() << "  [" << i << "]" << deviceInfo->name 
+                     << "- Input channels:" << deviceInfo->maxInputChannels;
+        }
     }
     
     // 设置Opus编码器
@@ -71,18 +82,6 @@ bool AudioInputManager::initialize(int sampleRate, int channels, int frameDurati
     return true;
 }
 
-bool AudioInputManager::setupAudioFormat()
-{
-    // Qt6 音频格式设置
-    m_audioFormat.setSampleRate(m_sampleRate);
-    m_audioFormat.setChannelCount(m_channels);
-    m_audioFormat.setSampleFormat(QAudioFormat::Int16); // 16-bit signed int
-    
-    qDebug() << "Audio format configured:" << m_audioFormat;
-    
-    return true;
-}
-
 bool AudioInputManager::setupOpusEncoder()
 {
     if (!m_opusEncoder->initialize(m_sampleRate, m_channels, OPUS_APPLICATION_VOIP)) {
@@ -91,7 +90,6 @@ bool AudioInputManager::setupOpusEncoder()
     }
     
     // 为语音设置合适的比特率
-    // 16kHz: 24-32 kbps
     int bitrate = 24000;
     if (m_sampleRate == 8000) {
         bitrate = 12000;
@@ -100,7 +98,7 @@ bool AudioInputManager::setupOpusEncoder()
     }
     
     m_opusEncoder->setBitrate(bitrate);
-    m_opusEncoder->setComplexity(10); // 最高质量
+    m_opusEncoder->setComplexity(10);
     m_opusEncoder->setVBR(true);
     
     qDebug() << "Opus encoder configured - bitrate:" << bitrate;
@@ -120,11 +118,11 @@ bool AudioInputManager::setupWebRTC()
     
     // 默认配置：启用噪声抑制和高通滤波
     webrtc_apm::AudioProcessorConfig config;
-    config.echoEnabled = false; // AEC默认关闭，需要参考信号
+    config.echoEnabled = false;
     config.noiseSuppressionEnabled = true;
     config.noiseLevel = webrtc_apm::NoiseSuppressionLevel::HIGH;
     config.highPassFilterEnabled = true;
-    config.gainControl1Enabled = false; // AGC默认关闭
+    config.gainControl1Enabled = false;
     
     if (!m_webrtcProcessor->applyConfig(config)) {
         qWarning() << "Failed to configure WebRTC processor";
@@ -138,7 +136,7 @@ bool AudioInputManager::setupWebRTC()
     
     return true;
 #else
-    qDebug() << "WebRTC AEC not available on this platform, using system-level processing";
+    qDebug() << "WebRTC not available on this platform";
     m_webrtcEnabled = false;
     return false;
 #endif
@@ -190,83 +188,74 @@ bool AudioInputManager::startRecording()
         return true;
     }
     
-    // 检查麦克风权限
-    if (!AudioPermission::checkMicrophonePermission()) {
-        qWarning() << "Microphone permission not granted";
-        emit errorOccurred("麦克风权限未授予，请在系统设置中允许访问");
+    // 检查并请求麦克风权限
+    qDebug() << "AudioInputManager: Checking microphone permission...";
+    bool hasPermission = AudioPermission::checkMicrophonePermission();
+    qDebug() << "AudioInputManager: Permission status:" << hasPermission;
+    
+    if (!hasPermission) {
+        qWarning() << "Microphone permission not granted, requesting...";
+        hasPermission = AudioPermission::requestMicrophonePermission();
+        qDebug() << "AudioInputManager: Permission after request:" << hasPermission;
         
-        // 尝试请求权限
-        if (!AudioPermission::requestMicrophonePermission()) {
+        if (!hasPermission) {
+            emit errorOccurred("麦克风权限未授予，请在系统设置中允许访问");
             return false;
         }
     }
     
-    // 创建音频输入（Qt6）
-    QAudioDevice inputDevice = QMediaDevices::defaultAudioInput();
-    if (inputDevice.isNull()) {
-        qWarning() << "AudioInputManager: No audio input device available";
+    // 配置输入参数
+    PaStreamParameters inputParameters;
+    inputParameters.device = Pa_GetDefaultInputDevice();
+    if (inputParameters.device == paNoDevice) {
+        qWarning() << "No default input device found";
         emit errorOccurred("No audio input device available");
         return false;
     }
     
-    qDebug() << "AudioInputManager: Using audio device:" << inputDevice.description();
-    qDebug() << "AudioInputManager: Device supports format:" << inputDevice.isFormatSupported(m_audioFormat);
+    const PaDeviceInfo* deviceInfo = Pa_GetDeviceInfo(inputParameters.device);
+    qDebug() << "Using input device:" << deviceInfo->name;
+    qDebug() << "Device sample rate:" << deviceInfo->defaultSampleRate;
+    qDebug() << "Device input channels:" << deviceInfo->maxInputChannels;
     
-    m_audioSource = new QAudioSource(inputDevice, m_audioFormat, this);
+    inputParameters.channelCount = m_channels;
+    inputParameters.sampleFormat = paInt16;
+    inputParameters.suggestedLatency = deviceInfo->defaultLowInputLatency;
+    inputParameters.hostApiSpecificStreamInfo = NULL;
     
-    qDebug() << "AudioInputManager: Created QAudioSource, buffer size:" << m_audioSource->bufferSize();
-    qDebug() << "AudioInputManager: Format:" << m_audioSource->format();
+    // 打开音频流
+    PaError err = Pa_OpenStream(
+        &m_stream,
+        &inputParameters,
+        NULL,  // 无输出
+        m_sampleRate,
+        m_frameSize,  // 每次回调的帧数
+        paClipOff,
+        &AudioInputManager::audioCallback,
+        this  // 用户数据指针，传递this
+    );
     
-    // 开始录音
-    m_audioDevice = m_audioSource->start();
-    if (!m_audioDevice) {
-        qWarning() << "AudioInputManager: Failed to start audio input";
-        emit errorOccurred("Failed to start audio input");
-        delete m_audioSource;
-        m_audioSource = nullptr;
+    if (err != paNoError) {
+        qWarning() << "Failed to open audio stream:" << Pa_GetErrorText(err);
+        emit errorOccurred(QString("Failed to open audio stream: %1").arg(Pa_GetErrorText(err)));
         return false;
     }
     
-    qDebug() << "AudioInputManager: Audio device started, state:" << m_audioSource->state();
-    qDebug() << "AudioInputManager: Audio device pointer:" << m_audioDevice;
-    qDebug() << "AudioInputManager: Device is open:" << m_audioDevice->isOpen();
-    qDebug() << "AudioInputManager: Device is readable:" << m_audioDevice->isReadable();
-    
-    // 连接数据信号
-    connect(m_audioDevice, &QIODevice::readyRead, this, &AudioInputManager::onAudioDataReady);
-    qDebug() << "AudioInputManager: Connected readyRead signal";
-    
-    // 连接状态变化信号
-    connect(m_audioSource, &QAudioSource::stateChanged, this, [this](QAudio::State state) {
-        qDebug() << "AudioInputManager: State changed to:" << state;
-        switch(state) {
-            case QAudio::ActiveState:
-                qDebug() << "  -> Audio is active and processing";
-                break;
-            case QAudio::SuspendedState:
-                qDebug() << "  -> Audio is suspended";
-                break;
-            case QAudio::StoppedState:
-                qDebug() << "  -> Audio is stopped";
-                break;
-            case QAudio::IdleState:
-                qDebug() << "  -> Audio is idle (no data flowing)";
-                break;
-        }
-    });
-    
-    // 检查音频源的错误
-    if (m_audioSource->error() != QAudio::NoError) {
-        qWarning() << "AudioInputManager: Audio source error:" << m_audioSource->error();
+    // 启动音频流
+    err = Pa_StartStream(m_stream);
+    if (err != paNoError) {
+        qWarning() << "Failed to start audio stream:" << Pa_GetErrorText(err);
+        Pa_CloseStream(m_stream);
+        m_stream = nullptr;
+        emit errorOccurred(QString("Failed to start audio stream: %1").arg(Pa_GetErrorText(err)));
+        return false;
     }
     
     m_isRecording = true;
     emit recordingStateChanged(true);
     
-    qDebug() << "Recording started";
-    
-    // 强制刷新，尝试触发音频捕获
-    QCoreApplication::processEvents();
+    qDebug() << "Recording started successfully with PortAudio";
+    qDebug() << "Stream is active:" << Pa_IsStreamActive(m_stream);
     
     return true;
 }
@@ -277,100 +266,100 @@ void AudioInputManager::stopRecording()
         return;
     }
     
-    if (m_audioSource) {
-        m_audioSource->stop();
-        delete m_audioSource;
-        m_audioSource = nullptr;
-        m_audioDevice = nullptr;
+    if (m_stream) {
+        PaError err = Pa_StopStream(m_stream);
+        if (err != paNoError) {
+            qWarning() << "Error stopping stream:" << Pa_GetErrorText(err);
+        }
+        
+        err = Pa_CloseStream(m_stream);
+        if (err != paNoError) {
+            qWarning() << "Error closing stream:" << Pa_GetErrorText(err);
+        }
+        
+        m_stream = nullptr;
     }
     
-    m_audioBuffer.clear();
     m_isRecording = false;
     emit recordingStateChanged(false);
     
     qDebug() << "Recording stopped";
 }
 
-void AudioInputManager::onAudioDataReady()
+// PortAudio回调函数 - 在音频线程中调用
+int AudioInputManager::audioCallback(
+    const void *inputBuffer,
+    void *outputBuffer,
+    unsigned long framesPerBuffer,
+    const PaStreamCallbackTimeInfo* timeInfo,
+    PaStreamCallbackFlags statusFlags,
+    void *userData)
 {
-    if (!m_audioDevice) {
-        qWarning() << "AudioInputManager: audio device is null";
-        return;
+    AudioInputManager* self = static_cast<AudioInputManager*>(userData);
+    const int16_t* input = static_cast<const int16_t*>(inputBuffer);
+    
+    // 检查输入
+    if (!input || !self) {
+        return paContinue;
     }
     
-    // 读取可用的音频数据
-    QByteArray data = m_audioDevice->readAll();
-    if (data.isEmpty()) {
-        qWarning() << "AudioInputManager: no audio data available";
-        return;
+    // 检查状态标志
+    if (statusFlags & paInputOverflow) {
+        qWarning() << "PortAudio: Input overflow detected";
     }
     
-    qDebug() << "AudioInputManager: received" << data.size() << "bytes of audio data";
-    processAudioData(data);
+    // 处理音频数据
+    self->processAudioData(input, framesPerBuffer);
+    
+    return paContinue;
 }
 
-void AudioInputManager::processAudioData(const QByteArray& rawData)
+void AudioInputManager::processAudioData(const int16_t* pcmData, int sampleCount)
 {
-    // 将新数据添加到缓冲区
-    m_audioBuffer.append(rawData);
+    if (!pcmData || sampleCount != m_frameSize) {
+        return;
+    }
     
-    // 处理完整的帧
-    while (m_audioBuffer.size() >= m_frameSizeBytes) {
-        // 提取一帧数据
-        QByteArray frameData = m_audioBuffer.left(m_frameSizeBytes);
-        m_audioBuffer.remove(0, m_frameSizeBytes);
+    // 如果启用了WebRTC处理
+    if (m_webrtcEnabled && m_webrtcProcessor->isInitialized()) {
+        int webrtcFrameSize = m_webrtcProcessor->getWebRTCFrameSize();
         
-        // 转换为int16_t数组
-        const int16_t* pcmData = reinterpret_cast<const int16_t*>(frameData.constData());
-        
-        // 如果启用了WebRTC处理
-        if (m_webrtcEnabled && m_webrtcProcessor->isInitialized()) {
-            // 需要处理为10ms的WebRTC帧
-            int webrtcFrameSize = m_webrtcProcessor->getWebRTCFrameSize();
+        // 如果当前帧大小是WebRTC帧的整数倍
+        if (m_frameSize % webrtcFrameSize == 0) {
+            std::vector<int16_t> processedData(m_frameSize);
             
-            // 如果当前帧大小是WebRTC帧的整数倍
-            if (m_frameSize % webrtcFrameSize == 0) {
-                std::vector<int16_t> processedData(m_frameSize);
+            // 分块处理
+            int numChunks = m_frameSize / webrtcFrameSize;
+            for (int i = 0; i < numChunks; ++i) {
+                const int16_t* chunkInput = pcmData + (i * webrtcFrameSize);
+                int16_t* chunkOutput = processedData.data() + (i * webrtcFrameSize);
                 
-                // 分块处理
-                int numChunks = m_frameSize / webrtcFrameSize;
-                for (int i = 0; i < numChunks; ++i) {
-                    const int16_t* chunkInput = pcmData + (i * webrtcFrameSize);
-                    int16_t* chunkOutput = processedData.data() + (i * webrtcFrameSize);
-                    
-                    if (!m_webrtcProcessor->processStream(chunkInput, webrtcFrameSize, chunkOutput)) {
-                        qWarning() << "WebRTC processing failed for chunk" << i;
-                        // 失败则使用原始数据
-                        memcpy(chunkOutput, chunkInput, webrtcFrameSize * sizeof(int16_t));
-                    }
+                if (!m_webrtcProcessor->processStream(chunkInput, webrtcFrameSize, chunkOutput)) {
+                    // 失败则使用原始数据
+                    memcpy(chunkOutput, chunkInput, webrtcFrameSize * sizeof(int16_t));
                 }
-                
-                // 编码处理后的数据
-                encodeAndEmit(processedData.data(), m_frameSize);
-            } else {
-                // 帧大小不匹配，直接编码原始数据
-                qWarning() << "Frame size not compatible with WebRTC, using raw audio";
-                encodeAndEmit(pcmData, m_frameSize);
             }
+            
+            // 编码处理后的数据
+            encodeAndEmit(processedData.data(), m_frameSize);
         } else {
-            // 不使用WebRTC处理，直接编码
+            // 帧大小不匹配，直接编码原始数据
             encodeAndEmit(pcmData, m_frameSize);
         }
+    } else {
+        // 不使用WebRTC处理，直接编码
+        encodeAndEmit(pcmData, m_frameSize);
     }
 }
 
 void AudioInputManager::encodeAndEmit(const int16_t* pcmData, int sampleCount)
 {
-    qDebug() << "AudioInputManager: encoding" << sampleCount << "samples";
-    
     // 使用Opus编码
     QByteArray encodedData = m_opusEncoder->encode(pcmData, sampleCount);
     
     if (!encodedData.isEmpty()) {
-        qDebug() << "AudioInputManager: encoded to" << encodedData.size() << "bytes, emitting signal";
+        // 发射信号（Qt会自动处理跨线程的信号）
         emit audioDataEncoded(encodedData);
-    } else {
-        qWarning() << "AudioInputManager: Opus encoding returned empty data";
     }
 }
 
@@ -383,4 +372,3 @@ bool AudioInputManager::checkMicrophonePermission()
 {
     return AudioPermission::checkMicrophonePermission();
 }
-

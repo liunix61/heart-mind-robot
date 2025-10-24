@@ -20,6 +20,14 @@ find_package(Qt6 REQUIRED COMPONENTS OpenGLWidgets)
 find_package(Qt6 COMPONENTS WebSockets REQUIRED) # 添加WebSocket支持
 find_package(Qt6 COMPONENTS Multimedia REQUIRED) # 添加qt多媒体模块
 find_package(Qt6 COMPONENTS Network REQUIRED) # 添加qt网络模块
+
+# 查找PortAudio
+find_path(PORTAUDIO_INCLUDE_DIR portaudio.h PATHS /usr/local/include)
+find_library(PORTAUDIO_LIBRARY portaudio PATHS /usr/local/lib)
+if(NOT PORTAUDIO_INCLUDE_DIR OR NOT PORTAUDIO_LIBRARY)
+    message(FATAL_ERROR "PortAudio not found! Please install: brew install portaudio")
+endif()
+include_directories(${PORTAUDIO_INCLUDE_DIR})
 #find_library(APPLICATION_SERVICES_FRAMEWORK ApplicationServices)
 #
 #if (NOT APPLICATION_SERVICES_FRAMEWORK)
@@ -138,9 +146,9 @@ endif()
 add_subdirectory(src)
 
 if(WIN32)
-    target_link_libraries(ChatFriend PRIVATE Qt6::Widgets Qt6::OpenGL glew_s Framework Qt6::OpenGLWidgets glfw Qt6::Network Qt6::WebSockets Qt6::Multimedia winmm opus)
+    target_link_libraries(ChatFriend PRIVATE Qt6::Widgets Qt6::OpenGL glew_s Framework Qt6::OpenGLWidgets glfw Qt6::Network Qt6::WebSockets Qt6::Multimedia winmm opus ${PORTAUDIO_LIBRARY})
 elseif(APPLE)
-    target_link_libraries(ChatFriend PRIVATE Qt6::Widgets Qt6::OpenGL glew_s Framework Qt6::OpenGLWidgets "-framework Cocoa -framework AVFoundation" glfw Qt6::Network Qt6::WebSockets Qt6::Multimedia opus)
+    target_link_libraries(ChatFriend PRIVATE Qt6::Widgets Qt6::OpenGL glew_s Framework Qt6::OpenGLWidgets "-framework Cocoa -framework AVFoundation -framework CoreAudio -framework AudioToolbox" glfw Qt6::Network Qt6::WebSockets Qt6::Multimedia opus ${PORTAUDIO_LIBRARY})
 endif()
 #执行alias alias otool='/usr/bin/otool'
 #alias install_name_tool='/usr/bin/install_name_tool'

@@ -2,19 +2,16 @@
 #define AUDIOINPUTMANAGER_HPP
 
 #include <QObject>
-#include <QAudioSource>
-#include <QAudioFormat>
-#include <QIODevice>
-#include <QMediaDevices>
-#include <QAudioDevice>
+#include <QByteArray>
 #include <memory>
+#include <portaudio.h>
 #include "OpusEncoder.hpp"
 #include "WebRTCAudioProcessor.hpp"
 
 /**
- * 音频输入管理器
+ * 音频输入管理器（基于PortAudio）
  * 负责：
- * 1. 麦克风音频采集
+ * 1. 麦克风音频采集（使用PortAudio callback模式）
  * 2. WebRTC音频处理（AEC、NS等）
  * 3. Opus编码
  * 4. 发送编码后的音频数据
@@ -46,9 +43,6 @@ public:
     // 配置WebRTC
     bool configureWebRTC(bool enableAEC, bool enableNS, bool enableHighPass);
     
-    // 获取音频格式
-    QAudioFormat getAudioFormat() const { return m_audioFormat; }
-    
     // 请求麦克风权限（macOS特定）
     static bool requestMicrophonePermission();
     
@@ -65,14 +59,25 @@ signals:
     // 错误信号
     void errorOccurred(const QString& error);
 
-private slots:
-    void onAudioDataReady();
-
 private:
-    // 音频输入相关
-    QAudioSource* m_audioSource;
-    QIODevice* m_audioDevice;
-    QAudioFormat m_audioFormat;
+    // PortAudio回调函数（必须是静态的）
+    static int audioCallback(
+        const void *inputBuffer,
+        void *outputBuffer,
+        unsigned long framesPerBuffer,
+        const PaStreamCallbackTimeInfo* timeInfo,
+        PaStreamCallbackFlags statusFlags,
+        void *userData);
+    
+    // 处理音频数据
+    void processAudioData(const int16_t* pcmData, int sampleCount);
+    
+    // 编码并发送
+    void encodeAndEmit(const int16_t* pcmData, int sampleCount);
+    
+    // PortAudio相关
+    PaStream* m_stream;
+    bool m_paInitialized;
     
     // Opus编码器
     std::unique_ptr<OpusEncoder> m_opusEncoder;
@@ -86,22 +91,14 @@ private:
     int m_channels;
     int m_frameDurationMs;
     int m_frameSize;          // 样本数
-    int m_frameSizeBytes;     // 字节数
-    
-    // 音频缓冲
-    QByteArray m_audioBuffer;
     
     // 状态
     bool m_initialized;
     bool m_isRecording;
     
     // 内部方法
-    bool setupAudioFormat();
     bool setupOpusEncoder();
     bool setupWebRTC();
-    void processAudioData(const QByteArray& rawData);
-    void encodeAndEmit(const int16_t* pcmData, int sampleCount);
 };
 
 #endif // AUDIOINPUTMANAGER_HPP
-
