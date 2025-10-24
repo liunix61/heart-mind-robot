@@ -73,6 +73,9 @@ private:
         // Windows 音频播放器成员
         void* audioPlayer;
     )
+    
+    // Opus解码器
+    OpusDecoder *m_opusDecoder;
 };
 
 #endif // AUDIOUTIL_H

@@ -216,12 +216,11 @@ void MainWindow::action_move(QAction *a) {
 
 }
 
-void MainWindow::action_dialog(QAction *a) {
-    if (a == this->open_dialog) {
-        // 使用WebSocket版本的聊天对话框
-        websocket_dialog_window_->show();
-    } else if (a == this->close_dialog) {
+void MainWindow::action_dialog(bool checked) {
+    if (websocket_dialog_window_->isVisible()) {
         websocket_dialog_window_->hide();
+    } else {
+        websocket_dialog_window_->show();
     }
 }
 
@@ -237,10 +236,10 @@ void MainWindow::showWebSocketChatDialog() {
     }
 }
 
-void MainWindow::action_change(QAction *a) {
+void MainWindow::action_change(bool checked) {
     int counter = 0;
     for (auto &i: model_list) {
-        if (i == a) {
+        if (i->isChecked()) {
             break;
         }
         counter++;

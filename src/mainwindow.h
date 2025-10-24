@@ -39,15 +39,15 @@ private:
 
     void action_exit();
 
-    // void action_voice();  // 已移除语音设置项
+    void action_voice();
 
     void action_move(QAction *);
 
-    void action_change(QAction *);
+    void action_change(bool);
 
     void action_set_top();
 
-    void action_dialog(QAction *);
+    void action_dialog(bool);
 
     void mousePressEvent(QMouseEvent *event) override;
 
@@ -59,6 +59,7 @@ private:
     bool mouse_press{false};
     QSystemTrayIcon *m_systemTray;
     QAction *a_exit;
+    MouseEventHandle *mouseEventHandle;
     // QAction *a_voice;  // 已移除语音设置项
     QAction *move_off;
     QAction *move_on;

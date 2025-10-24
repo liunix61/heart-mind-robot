@@ -1,3 +1,4 @@
+if(APPLE)
 target_sources(HeartMindRobot
         PRIVATE
       ${CMAKE_CURRENT_SOURCE_DIR}/LAppAllocator.cpp
@@ -31,12 +32,55 @@ target_sources(HeartMindRobot
         ${CMAKE_CURRENT_SOURCE_DIR}/MouseEvent.h
         ${CMAKE_CURRENT_SOURCE_DIR}/AsyncMessageQueue.h
         ${CMAKE_CURRENT_SOURCE_DIR}/AsyncMessageQueue.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/ConversationWorker.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/ConversationWorker.cpp
+        # ${CMAKE_CURRENT_SOURCE_DIR}/ConversationWorker.h
+        # ${CMAKE_CURRENT_SOURCE_DIR}/ConversationWorker.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/ThreadSafeUIUpdater.h
         ${CMAKE_CURRENT_SOURCE_DIR}/ThreadSafeUIUpdater.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/AsyncStateManager.h
         ${CMAKE_CURRENT_SOURCE_DIR}/AsyncStateManager.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/AsyncIntegrationExample.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/AsyncIntegrationExample.cpp
+        # ${CMAKE_CURRENT_SOURCE_DIR}/AsyncIntegrationExample.h
+        # ${CMAKE_CURRENT_SOURCE_DIR}/AsyncIntegrationExample.cpp
   )
+else()
+target_sources(HeartMindRobot
+        PRIVATE
+      ${CMAKE_CURRENT_SOURCE_DIR}/LAppAllocator.cpp
+      ${CMAKE_CURRENT_SOURCE_DIR}/LAppDefine.cpp
+      ${CMAKE_CURRENT_SOURCE_DIR}/LAppDelegate.cpp
+      ${CMAKE_CURRENT_SOURCE_DIR}/LAppLive2DManager.cpp
+      ${CMAKE_CURRENT_SOURCE_DIR}/LAppModel.cpp
+      ${CMAKE_CURRENT_SOURCE_DIR}/LAppPal.cpp
+      ${CMAKE_CURRENT_SOURCE_DIR}/LAppSprite.cpp
+      ${CMAKE_CURRENT_SOURCE_DIR}/LAppTextureManager.cpp
+      ${CMAKE_CURRENT_SOURCE_DIR}/LAppView.cpp
+      ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp
+      ${CMAKE_CURRENT_SOURCE_DIR}/TouchManager.cpp
+      ${CMAKE_CURRENT_SOURCE_DIR}/glwidget.cpp
+      ${CMAKE_CURRENT_SOURCE_DIR}/glwidget.h
+      ${CMAKE_CURRENT_SOURCE_DIR}/event_handler.cpp
+      ${CMAKE_CURRENT_SOURCE_DIR}/mainwindow.cpp
+      ${CMAKE_CURRENT_SOURCE_DIR}/mainwindow.h
+      ${CMAKE_CURRENT_SOURCE_DIR}/mainwindow.ui
+      ${CMAKE_CURRENT_SOURCE_DIR}/message_queue.cpp
+      ${CMAKE_CURRENT_SOURCE_DIR}/resource_loader.cpp
+      ${CMAKE_CURRENT_SOURCE_DIR}/TouchManager.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/AudioUtil.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/AudioUtil.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/Networkutil.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/Networkutil.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/ChatDialog.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/ChatDialog.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/MouseEvent.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/MouseEvent.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/AsyncMessageQueue.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/AsyncMessageQueue.cpp
+        # ${CMAKE_CURRENT_SOURCE_DIR}/ConversationWorker.h
+        # ${CMAKE_CURRENT_SOURCE_DIR}/ConversationWorker.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/ThreadSafeUIUpdater.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/ThreadSafeUIUpdater.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/AsyncStateManager.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/AsyncStateManager.cpp
+        # ${CMAKE_CURRENT_SOURCE_DIR}/AsyncIntegrationExample.h
+        # ${CMAKE_CURRENT_SOURCE_DIR}/AsyncIntegrationExample.cpp
+  )
+endif()

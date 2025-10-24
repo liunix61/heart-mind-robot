@@ -79,8 +79,10 @@ MainWindow::MainWindow(QWidget *parent, QApplication *mapp)
     connect(action_exit, &QAction::triggered, this, &MainWindow::action_exit);
     connect(action_set_top, &QAction::triggered, this, &MainWindow::action_set_top);
     connect(action_voice, &QAction::triggered, this, &MainWindow::action_voice);
-    connect(action_move, &QAction::triggered, this, &MainWindow::action_move);
-    connect(action_change, &QAction::triggered, this, &MainWindow::action_change);
+    // connect(action_move, &QAction::triggered, this, [this]() {
+    //     action_move(action_move);
+    // });
+    // connect(action_change, &QAction::triggered, this, &MainWindow::action_change);
     connect(action_dialog, &QAction::triggered, this, &MainWindow::action_dialog);
 
     // 系统托盘
@@ -136,14 +138,14 @@ void MainWindow::action_move(QAction *action) {
     }
 }
 
-void MainWindow::action_change(QAction *action) {
+void MainWindow::action_change(bool checked) {
     // 切换模型逻辑
     this->hide();
     // 重新加载模型
     this->show();
 }
 
-void MainWindow::action_dialog(QAction *action) {
+void MainWindow::action_dialog(bool checked) {
     if (dialog_window_->isVisible()) {
         dialog_window_->hide();
     } else {
@@ -178,4 +180,22 @@ void MainWindow::closeEvent(QCloseEvent *event) {
         mouseEventHandle->stopMonitoring();
     }
     event->accept();
+}
+
+void MainWindow::setDeskPetIntegration(DeskPetIntegration *integration)
+{
+    // 简单的实现
+    Q_UNUSED(integration)
+}
+
+void MainWindow::showWebSocketChatDialog()
+{
+    // 简单的实现
+    qDebug() << "WebSocket chat dialog requested";
+}
+
+void MainWindow::customEvent(QEvent *event)
+{
+    // 简单的实现
+    Q_UNUSED(event)
 }

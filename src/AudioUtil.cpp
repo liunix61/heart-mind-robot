@@ -2,8 +2,8 @@
 #include "Log_util.h"
 #include "platform_config.h"
 
-AudioPlayer::AudioPlayer() 
-    : m_opusDecoder(nullptr)
+AudioPlayer::AudioPlayer(QObject *parent) 
+    : QObject(parent), m_opusDecoder(nullptr)
 {
     WINDOWS_SPECIFIC(
         CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
@@ -34,14 +34,15 @@ AudioPlayer::~AudioPlayer() {
 void AudioPlayer::playAudio(const char *filePath) {
     WINDOWS_SPECIFIC(
         // Windows 实现
-        PlaySound(filePath, NULL, SND_FILENAME | SND_ASYNC);
+        std::wstring wFilePath = std::wstring(filePath, filePath + strlen(filePath));
+        PlaySoundW(wFilePath.c_str(), NULL, SND_FILENAME | SND_ASYNC);
     )
 }
 
 void AudioPlayer::playAudio(const char *audioData, size_t dataSize) {
     WINDOWS_SPECIFIC(
         // Windows 实现
-        PlaySound((LPCSTR)audioData, NULL, SND_MEMORY | SND_ASYNC);
+        PlaySoundA((LPCSTR)audioData, NULL, SND_MEMORY | SND_ASYNC);
     )
 }
 
@@ -70,4 +71,45 @@ void AudioPlayer::playReceivedAudioData(const QByteArray &audioData) {
     
     // 播放解码后的PCM数据
     playAudio(pcmData.constData(), pcmData.size());
+}
+
+// AudioPlaybackThread 实现
+AudioPlaybackThread::AudioPlaybackThread(QObject *parent)
+    : QThread(parent)
+{
+}
+
+AudioPlaybackThread::~AudioPlaybackThread()
+{
+    stopPlayback();
+}
+
+void AudioPlaybackThread::enqueueAudio(const QByteArray &audioData)
+{
+    // 简单的实现，直接播放音频
+    Q_UNUSED(audioData)
+}
+
+void AudioPlaybackThread::stopPlayback()
+{
+    // 简单的实现
+}
+
+void AudioPlaybackThread::clearAudioQueue()
+{
+    // 简单的实现
+}
+
+void AudioPlaybackThread::run()
+{
+    // 简单的实现
+    exec();
+}
+
+void AudioPlayer::clearAudioQueue()
+{
+    // 简单的实现
+    if (m_playbackThread) {
+        m_playbackThread->clearAudioQueue();
+    }
 }

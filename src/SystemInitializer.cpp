@@ -34,6 +34,9 @@ SystemInitializer::SystemInitializer(QObject *parent)
     // 初始化ConfigManager
     m_configManager = ConfigManager::getInstance();
     
+    // 确保CLIENT_ID已初始化
+    m_configManager->initializeClientId();
+    
     // 从ConfigManager获取配置
     m_config = m_configManager->getFullConfig();
     m_clientId = m_configManager->getConfig("SYSTEM_OPTIONS.CLIENT_ID").toString();
@@ -329,7 +332,7 @@ QJsonObject SystemInitializer::analyzeActivationStatus()
         defaultActivationData["code"] = "123456";
         defaultActivationData["message"] = "请在xiaozhi.me输入验证码";
         result["activation_data"] = defaultActivationData;
-        qDebug() << "No activation data from server, using default";
+        qDebug() << "No activation data from server, using default activation code: 123456";
     }
     
     qDebug() << "Final result - need_activation_ui:" << result["need_activation_ui"].toBool();

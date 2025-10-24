@@ -369,3 +369,12 @@ const QString &resource_loader::get_gpt_system_prompt() const {
 QString& resource_loader::get_resoures_path() {
     return resource_file_path;
 }
+
+bool resource_loader::is_voice() const {
+    return tts_enable_;
+}
+
+void resource_loader::set_voice(bool voice) {
+    tts_enable_ = voice;
+    config_change = true;
+}

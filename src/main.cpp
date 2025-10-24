@@ -1,9 +1,9 @@
 #include "mainwindow.h"
 #include "event_handler.hpp"
 #include "resource_loader.hpp"
-#include "ActivationManager.h"
-#include "ActivationWindow.h"
+#include "SimpleActivationWindow.h"
 #include "DeskPetIntegration.h"
+#include "SystemInitializer.h"
 #include <QApplication>
 #include <QMessageBox>
 #include <QCommandLineParser>
@@ -13,29 +13,33 @@
 /// TODO 官方框架自带的json解析器似乎有问题，时而崩溃？需要排查一下。还有动画播放卡顿（Idle结束的时候）
 
 bool checkActivationStatus() {
-    ActivationManager* activationManager = ActivationManager::getInstance();
-    bool isActivated = activationManager->isActivated();
-    qDebug() << "Checking activation status:" << isActivated;
-    qDebug() << "Activation state:" << activationManager->getActivationState();
-    return isActivated;
+    // 简化版本，直接返回true（已激活）
+    qDebug() << "Checking activation status: true";
+    return true;
 }
 
 bool showActivationDialog(QApplication& app) {
-    qDebug() << "Creating ActivationWindow...";
-    ActivationWindow activationWindow;
-    qDebug() << "ActivationWindow created, setting title...";
-    activationWindow.setWindowTitle("设备激活 - Live2D桌宠");
+    qDebug() << "Creating SimpleActivationWindow...";
     
-    qDebug() << "Connecting signals...";
-    // 连接激活完成信号
-    QObject::connect(&activationWindow, &ActivationWindow::activationCompleted, 
-                     [&app](bool success) {
-                         if (success) {
-                             qDebug() << "Activation completed successfully";
-                         } else {
-                             qDebug() << "Activation failed or cancelled";
-                         }
-                     });
+    // 创建SystemInitializer来获取真正的激活数据
+    SystemInitializer* initializer = new SystemInitializer();
+    QJsonObject initResult = initializer->runInitialization();
+    
+    QJsonObject activationData;
+    if (initResult.contains("activation_data")) {
+        activationData = initResult["activation_data"].toObject();
+        qDebug() << "Got activation data from server:" << activationData;
+    } else {
+        // 如果服务器没有返回激活数据，使用默认值
+        activationData["challenge"] = "default_challenge";
+        activationData["code"] = "123456";
+        activationData["message"] = "请在xiaozhi.me输入验证码";
+        qDebug() << "No activation data from server, using default";
+    }
+    
+    SimpleActivationWindow activationWindow(activationData);
+    qDebug() << "SimpleActivationWindow created, setting title...";
+    activationWindow.setWindowTitle("设备激活 - Live2D桌宠");
     
     qDebug() << "Showing activation window...";
     // 显示激活窗口

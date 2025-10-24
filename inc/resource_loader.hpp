@@ -60,6 +60,10 @@ public:
     bool is_top() const;
 
     void set_top(bool top);
+    
+    bool is_voice() const;
+    
+    void set_voice(bool voice);
 
     QString& get_resoures_path();
 

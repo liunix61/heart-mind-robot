@@ -14,7 +14,11 @@
 #include <GL/glew.h>
 #include <Model/CubismMoc.hpp>
 #include "LAppDefine.hpp"
+#ifdef __APPLE__
 #include <CoreFoundation/CoreFoundation.h>
+#else
+#include <chrono>
+#endif
 #include "Log_util.h"
 
 using std::endl;
@@ -61,7 +65,11 @@ csmFloat32 LAppPal::GetDeltaTime() {
 }
 
 void LAppPal::UpdateTime() {
+#ifdef __APPLE__
     s_currentFrame = CFAbsoluteTimeGetCurrent();
+#else
+    s_currentFrame = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count() / 1000.0;
+#endif
     s_deltaTime = s_currentFrame - s_lastFrame;
     s_lastFrame = s_currentFrame;
 }

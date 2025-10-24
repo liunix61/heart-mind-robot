@@ -49,17 +49,34 @@ SimpleActivationWindow::SimpleActivationWindow(const QJsonObject& activationData
     
     // 从ConfigManager获取配置信息
     auto configManager = ConfigManager::getInstance();
+    
+    // 确保CLIENT_ID已初始化
+    configManager->initializeClientId();
     m_clientId = configManager->getConfig("SYSTEM_OPTIONS.CLIENT_ID").toString();
-    m_deviceId = configManager->getConfig("SYSTEM_OPTIONS.DEVICE_ID").toString();
+    
+    // 确保DEVICE_ID已初始化（从DeviceFingerprint获取MAC地址）
+    auto deviceFingerprint = DeviceFingerprint::getInstance();
+    QString macAddress = deviceFingerprint->getMacAddress();
+    if (!macAddress.isEmpty()) {
+        configManager->updateConfig("SYSTEM_OPTIONS.DEVICE_ID", macAddress);
+        m_deviceId = macAddress;
+    } else {
+        m_deviceId = configManager->getConfig("SYSTEM_OPTIONS.DEVICE_ID").toString();
+    }
+    
     m_serverUrl = configManager->getConfig("SYSTEM_OPTIONS.NETWORK.OTA_VERSION_URL").toString();
     
     // 从DeviceFingerprint获取设备信息
-    auto deviceFingerprint = DeviceFingerprint::getInstance();
     m_serialNumber = deviceFingerprint->getSerialNumber();
     m_hmacSignature = deviceFingerprint->generateHmac(m_challenge);
     
     // 生成激活码（用于显示）
     m_activationCode = m_verificationCode;
+    
+    // 调试信息：显示激活码来源
+    qDebug() << "=== 激活码调试信息 ===";
+    qDebug() << "verificationCode from activationData:" << m_verificationCode;
+    qDebug() << "activationCode set to:" << m_activationCode;
     
     // 连接信号槽
     connect(m_activationTimer, &QTimer::timeout, this, &SimpleActivationWindow::onActivationTimeout);
