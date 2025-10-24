@@ -122,38 +122,11 @@ bool AudioInputManager::setupOpusEncoder()
 
 bool AudioInputManager::setupWebRTC()
 {
-    // 只在macOS上使用WebRTC
-#ifdef __APPLE__
-    if (!m_webrtcProcessor->initialize(m_sampleRate, m_channels)) {
-        qWarning() << "Failed to initialize WebRTC processor (continuing without it)";
-        m_webrtcEnabled = false;
-        return false;
-    }
-    
-    // 默认配置：启用噪声抑制和高通滤波
-    webrtc_apm::AudioProcessorConfig config;
-    config.echoEnabled = false;
-    config.noiseSuppressionEnabled = true;
-    config.noiseLevel = webrtc_apm::NoiseSuppressionLevel::HIGH;
-    config.highPassFilterEnabled = true;
-    config.gainControl1Enabled = false;
-    
-    if (!m_webrtcProcessor->applyConfig(config)) {
-        qWarning() << "Failed to configure WebRTC processor";
-        m_webrtcEnabled = false;
-        return false;
-    }
-    
-    m_webrtcProcessor->setStreamDelayMs(40);
-    m_webrtcEnabled = true;
-    qDebug() << "WebRTC processor initialized and enabled";
-    
-    return true;
-#else
-    qDebug() << "WebRTC not available on this platform";
+    // 禁用WebRTC - 噪声抑制会过度过滤语音，导致识别不完整
+    // 直接使用原始音频可以获得更好的语音识别效果
+    qDebug() << "WebRTC disabled - using raw audio for better speech recognition";
     m_webrtcEnabled = false;
     return false;
-#endif
 }
 
 bool AudioInputManager::configureWebRTC(bool enableAEC, bool enableNS, bool enableHighPass)
