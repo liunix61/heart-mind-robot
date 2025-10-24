@@ -619,6 +619,8 @@ void DeskPetController::onWebSocketTTSReceived(const QString &text, const QStrin
 void DeskPetController::onWebSocketSTTReceived(const QString &text)
 {
     handleSTTMessage(text);
+    // 发出 STT 信号给外部
+    emit sttReceived(text);
 }
 
 void DeskPetController::onWebSocketLLMReceived(const QString &text, const QString &emotion)

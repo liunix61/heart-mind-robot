@@ -365,6 +365,11 @@ void LAppModel::Update() {
     if (_lipSync) {
         // 使用从PCM数据实时计算的RMS值（通过 UpdateLipSyncFromPCM 更新）
         // _lastLipSyncValue 在每次音频解码时更新
+        
+        // 自然衰减：如果没有新的音频输入，嘴巴会逐渐闭合
+        const float DECAY_RATE = 0.95f; // 每帧衰减 5%
+        _lastLipSyncValue *= DECAY_RATE;
+        
         for (csmUint32 i = 0; i < _lipSyncIds.GetSize(); ++i) {
             _model->AddParameterValue(_lipSyncIds[i], _lastLipSyncValue, 0.8f);
         }
@@ -617,18 +622,7 @@ void LAppModel::UpdateLipSyncAudio(std::shared_ptr<QByteArray> sound) {
 }
 
 void LAppModel::UpdateLipSyncFromPCM(const QByteArray &pcmData, int sampleRate) {
-    CF_LOG_INFO("========== UpdateLipSyncFromPCM START ==========");
-    CF_LOG_INFO("PCM data size: %d bytes", pcmData.size());
-    CF_LOG_INFO("Lip sync IDs count: %d", _lipSyncIds.GetSize());
-    CF_LOG_INFO("_lipSync flag: %d", _lipSync);
-    
-    if (pcmData.isEmpty()) {
-        CF_LOG_ERROR("UpdateLipSyncFromPCM: PCM data is EMPTY!");
-        return;
-    }
-    
-    if (_lipSyncIds.GetSize() == 0) {
-        CF_LOG_ERROR("UpdateLipSyncFromPCM: NO lip sync IDs configured!");
+    if (pcmData.isEmpty() || _lipSyncIds.GetSize() == 0) {
         return;
     }
     
@@ -636,35 +630,56 @@ void LAppModel::UpdateLipSyncFromPCM(const QByteArray &pcmData, int sampleRate) 
     const int16_t* samples = reinterpret_cast<const int16_t*>(pcmData.constData());
     int sampleCount = pcmData.size() / sizeof(int16_t);
     
-    // 调试：打印前10个样本的值
-    CF_LOG_INFO("First 10 samples:");
-    for (int i = 0; i < std::min(10, sampleCount); i++) {
-        CF_LOG_INFO("  sample[%d] = %d", i, samples[i]);
-    }
-    
-    // 计算RMS（均方根）
+    // 计算RMS（均方根）和过零率
     float sum = 0.0f;
+    int zeroCrossings = 0;
     int16_t maxSample = 0;
-    int16_t minSample = 0;
-    for (int i = 0; i < sampleCount; i++) {
-        maxSample = std::max(maxSample, samples[i]);
-        minSample = std::min(minSample, samples[i]);
-        float normalized = samples[i] / 32768.0f; // 归一化到 -1.0 ~ 1.0
-        sum += normalized * normalized;
-    }
-    float rms = sqrt(sum / sampleCount);
     
-    CF_LOG_INFO("Sample range: [%d, %d]", minSample, maxSample);
-    CF_LOG_INFO("Raw RMS before amplification: %.6f", rms);
+    for (int i = 0; i < sampleCount; i++) {
+        maxSample = std::max(maxSample, static_cast<int16_t>(std::abs(samples[i])));
+        float normalized = samples[i] / 32768.0f;
+        sum += normalized * normalized;
+        
+        // 计算过零率（用于检测人声特征）
+        if (i > 0 && ((samples[i] >= 0 && samples[i-1] < 0) || (samples[i] < 0 && samples[i-1] >= 0))) {
+            zeroCrossings++;
+        }
+    }
+    
+    float rms = sqrt(sum / sampleCount);
+    float zeroCrossingRate = static_cast<float>(zeroCrossings) / sampleCount;
+    
+    // 设置最小阈值 - 只有超过这个阈值才认为是"有声音"
+    const float MIN_RMS_THRESHOLD = 0.02f;  // 静音阈值
+    const float MIN_SPEECH_RMS = 0.05f;     // 人声最小阈值
+    const float MAX_MUSIC_ZCR = 0.15f;      // 音乐的过零率通常较高
+    
+    // 如果 RMS 太小，直接设为 0（静音）
+    if (rms < MIN_RMS_THRESHOLD) {
+        _lastLipSyncValue *= 0.5f; // 快速衰减
+        return;
+    }
+    
+    // 简单的人声检测逻辑：
+    // 1. RMS 足够大（说明有能量）
+    // 2. 过零率适中（人声通常在 0.05-0.15 之间，纯音乐可能更高）
+    // 3. 峰值不要太小（避免背景噪音）
+    bool likelySpeech = (rms >= MIN_SPEECH_RMS) && 
+                       (zeroCrossingRate < MAX_MUSIC_ZCR) && 
+                       (maxSample > 1000);
+    
+    if (!likelySpeech) {
+        // 可能是音乐或噪音，减小影响
+        rms *= 0.3f; // 只保留 30% 的振幅
+    }
     
     // 放大RMS值，使口型变化更明显
-    rms = std::min(rms * 8.0f, 1.0f); // 放大8倍，更明显
+    rms = std::min(rms * 8.0f, 1.0f);
     
-    CF_LOG_INFO("Calculated RMS after amplification: %.4f (from %d samples)", rms, sampleCount);
+    // 平滑处理：新值和旧值之间插值，避免突变
+    const float SMOOTHING = 0.3f;
+    _lastLipSyncValue = _lastLipSyncValue * (1.0f - SMOOTHING) + rms * SMOOTHING;
     
-    // 保存RMS值到 _lastLipSyncValue，它会在 Update() 中被应用
-    _lastLipSyncValue = rms;
-    
-    CF_LOG_INFO("Saved RMS to _lastLipSyncValue: %.4f", _lastLipSyncValue);
-    CF_LOG_INFO("========== UpdateLipSyncFromPCM END ==========");
+    CF_LOG_DEBUG("LipSync - RMS: %.3f, ZCR: %.3f, Speech: %d, Final: %.3f", 
+                 rms, zeroCrossingRate, likelySpeech, _lastLipSyncValue);
 }

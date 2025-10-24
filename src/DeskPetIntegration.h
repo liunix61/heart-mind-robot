@@ -99,6 +99,7 @@ private slots:
     void onControllerPetInteraction(const QString &interaction);
     void onControllerAnimationRequested(const QString &animationName);
     void onControllerDebugMessage(const QString &message);
+    void onControllerSTTReceived(const QString &text);
     
     // 定时器处理
     void onStatusUpdateTimeout();
@@ -125,6 +126,7 @@ private:
     // 状态变量
     bool m_initialized;
     bool m_connected;
+    bool m_lipSyncEnabled;  // 控制是否启用口型同步（播放音乐时禁用）
     
     // 配置
     QString m_serverUrl;

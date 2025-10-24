@@ -17,6 +17,7 @@ DeskPetIntegration::DeskPetIntegration(QObject *parent)
     , m_lipSyncTimer(nullptr)
     , m_initialized(false)
     , m_connected(false)
+    , m_lipSyncEnabled(true)  // 默认启用口型同步
 {
     // 初始化配置
     m_serverUrl = "wss://api.tenclass.net/xiaozhi/v1/";
@@ -387,6 +388,9 @@ void DeskPetIntegration::setupConnections()
     connect(m_controller, &DeskPetController::petInteraction, this, &DeskPetIntegration::onControllerPetInteraction);
     connect(m_controller, &DeskPetController::animationRequested, this, &DeskPetIntegration::onControllerAnimationRequested);
     connect(m_controller, &DeskPetController::debugMessage, this, &DeskPetIntegration::onControllerDebugMessage);
+    
+    // 连接 STT 信号用于退出音乐模式
+    connect(m_controller, &DeskPetController::sttReceived, this, &DeskPetIntegration::onControllerSTTReceived);
 }
 
 void DeskPetIntegration::setupTimers()
@@ -525,7 +529,26 @@ void DeskPetIntegration::onControllerDeviceStateChanged(DeviceState newState)
 void DeskPetIntegration::onControllerMessageReceived(const QString &message)
 {
     qDebug() << "Message received:" << message;
+    
+    // 检查是否是音乐相关的消息 - 禁用口型同步
+    if (message.startsWith("% play_music", Qt::CaseInsensitive) || 
+        message.startsWith("% search_music", Qt::CaseInsensitive)) {
+        qDebug() << "*** Music playback detected - disabling lip sync ***";
+        m_lipSyncEnabled = false;
+    } 
+    // 注意：不再通过普通消息自动启用口型同步
+    // 只有在收到 STT（用户说话）时才会重新启用
+    
     emit messageReceived(message);
+}
+
+void DeskPetIntegration::onControllerSTTReceived(const QString &text)
+{
+    // STT 表示用户在说话，退出音乐模式，重新启用口型同步
+    if (!m_lipSyncEnabled) {
+        qDebug() << "*** User speech detected (STT) - enabling lip sync ***";
+        m_lipSyncEnabled = true;
+    }
 }
 
 void DeskPetIntegration::onControllerAudioReceived(const QByteArray &audioData)
@@ -585,27 +608,17 @@ void DeskPetIntegration::onHeartbeatTimeout()
 
 void DeskPetIntegration::onAudioDecoded(const QByteArray &pcmData)
 {
-    qDebug() << "======================================";
-    qDebug() << "onAudioDecoded CALLED!";
-    qDebug() << "PCM size:" << pcmData.size();
-    qDebug() << "Live2D manager:" << (m_live2DManager ? "OK" : "NULL");
-    qDebug() << "======================================";
-    
-    if (pcmData.isEmpty()) {
-        qWarning() << "PCM data is empty!";
+    if (pcmData.isEmpty() || !m_live2DManager) {
         return;
     }
     
-    if (!m_live2DManager) {
-        qWarning() << "Live2D manager is NULL!";
-        return;
+    // 只在启用口型同步时才更新（播放音乐时禁用）
+    if (m_lipSyncEnabled) {
+        m_live2DManager->UpdateLipSyncFromPCM(pcmData, 24000);
+        qDebug() << "✓ Lip sync updated from" << pcmData.size() << "bytes PCM";
+    } else {
+        qDebug() << "○ Lip sync disabled (music playback)";
     }
-    
-    // 直接使用PCM数据更新口型，支持真正的流式输入
-    // 每次收到的音频片段都会实时计算RMS并更新口型参数
-    m_live2DManager->UpdateLipSyncFromPCM(pcmData, 24000);
-    
-    qDebug() << "✓✓✓ Lip sync update called successfully!";
 }
 
 QByteArray DeskPetIntegration::convertPCMToWAV(const QByteArray &pcmData, int sampleRate, int channels, int bitsPerSample)

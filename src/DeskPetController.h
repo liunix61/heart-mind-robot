@@ -96,6 +96,7 @@ signals:
     void messageReceived(const QString &message);
     void audioReceived(const QByteArray &audioData);
     void emotionChanged(const QString &emotion);
+    void sttReceived(const QString &text);  // 用户语音识别消息
     
     // 桌宠交互信号
     void petInteraction(const QString &interaction);
