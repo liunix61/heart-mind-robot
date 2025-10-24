@@ -13,21 +13,44 @@ bool resource_loader::initialize() {
     }
     
     // 动态获取资源路径，支持开发和打包后的应用
-    QStringList path_list = QCoreApplication::applicationDirPath().split("/");
-    path_list.removeLast();
-    resource_file_path = path_list.join("/").append("/Resources");
+    QString appDirPath = QCoreApplication::applicationDirPath();
+    CF_LOG_INFO("Application directory: %s", appDirPath.toStdString().c_str());
     
-    // 开发模式：如果Resources目录不存在，尝试使用项目根目录
+#ifdef __APPLE__
+    // macOS App Bundle 结构: xxx.app/Contents/MacOS/executable
+    // Resources 在: xxx.app/Contents/Resources/
+    QDir appDir(appDirPath);
+    if (appDir.cdUp()) { // 从 MacOS 到 Contents
+        resource_file_path = appDir.absolutePath() + "/Resources";
+        CF_LOG_INFO("macOS bundle resource path: %s", resource_file_path.toStdString().c_str());
+    }
+#else
+    // Windows/Linux: 简单的相对路径
+    QStringList path_list = appDirPath.split("/");
+    path_list.removeLast();
+    resource_file_path = path_list.join("/") + "/Resources";
+#endif
+    
+    // 检查Resources目录是否存在
     QDir resourceDir(resource_file_path);
     if (!resourceDir.exists()) {
-        // 尝试使用可执行文件所在目录的上上级目录 (适用于build/bin结构)
-        QString devPath = QCoreApplication::applicationDirPath();
-        QDir dir(devPath);
-        dir.cdUp(); // 从 bin 到 build
-        dir.cdUp(); // 从 build 到项目根目录
-        resource_file_path = dir.absolutePath() + "/Resources";
-        CF_LOG_INFO("Using development resource path: %s", resource_file_path.toStdString().c_str());
+        CF_LOG_WARN("Bundle Resources not found at: %s", resource_file_path.toStdString().c_str());
+        // 开发模式：尝试使用项目根目录
+        QDir dir(appDirPath);
+        // 从 build/bin/xxx.app/Contents/MacOS 或 build/bin 向上找到项目根目录
+        if (dir.cdUp() && dir.cdUp()) { // 尝试向上两级
+            if (dir.exists("Resources")) {
+                resource_file_path = dir.absolutePath() + "/Resources";
+                CF_LOG_INFO("Using development resource path: %s", resource_file_path.toStdString().c_str());
+            } else if (dir.cdUp() && dir.exists("Resources")) {
+                // 再向上一级尝试
+                resource_file_path = dir.absolutePath() + "/Resources";
+                CF_LOG_INFO("Using development resource path (3 levels up): %s", resource_file_path.toStdString().c_str());
+            }
+        }
     }
+    
+    // 验证config.json是否存在
     QFile file(resource_file_path + "/config.json");
 
     if (!file.open(QIODevice::ReadOnly)) {

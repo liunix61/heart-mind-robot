@@ -194,33 +194,54 @@ bool WebRTCAudioProcessor::loadLibrary() {
     // 构建库文件路径
     QString appDir = QCoreApplication::applicationDirPath();
     QString libPath;
+    QStringList searchPaths; // 多个搜索路径
     
 #ifdef __APPLE__
+    // macOS: 优先查找打包应用的Frameworks目录
+    QString frameworksPath = appDir + "/../Frameworks/libwebrtc_apm.dylib";
+    searchPaths << frameworksPath;
+    
+    // 开发模式: 查找third目录
     #if defined(__arm64__) || defined(__aarch64__)
-        libPath = appDir + "/../third/webrtc_apm/macos/arm64/libwebrtc_apm.dylib";
+        searchPaths << appDir + "/../third/webrtc_apm/macos/arm64/libwebrtc_apm.dylib";
+        searchPaths << appDir + "/../../third/webrtc_apm/macos/arm64/libwebrtc_apm.dylib";
+        searchPaths << appDir + "/../../../third/webrtc_apm/macos/arm64/libwebrtc_apm.dylib";
     #else
-        libPath = appDir + "/../third/webrtc_apm/macos/x64/libwebrtc_apm.dylib";
+        searchPaths << appDir + "/../third/webrtc_apm/macos/x64/libwebrtc_apm.dylib";
+        searchPaths << appDir + "/../../third/webrtc_apm/macos/x64/libwebrtc_apm.dylib";
+        searchPaths << appDir + "/../../../third/webrtc_apm/macos/x64/libwebrtc_apm.dylib";
     #endif
 #elif defined(_WIN32)
     #if defined(_M_ARM64) || defined(__aarch64__)
-        libPath = appDir + "/../third/webrtc_apm/windows/arm64/libwebrtc_apm.dll";
+        searchPaths << appDir + "/../third/webrtc_apm/windows/arm64/libwebrtc_apm.dll";
     #elif defined(_M_X64) || defined(__x86_64__)
-        libPath = appDir + "/../third/webrtc_apm/windows/x64/libwebrtc_apm.dll";
+        searchPaths << appDir + "/../third/webrtc_apm/windows/x64/libwebrtc_apm.dll";
     #else
-        libPath = appDir + "/../third/webrtc_apm/windows/x86/libwebrtc_apm.dll";
+        searchPaths << appDir + "/../third/webrtc_apm/windows/x86/libwebrtc_apm.dll";
     #endif
 #elif defined(__linux__)
     #if defined(__aarch64__) || defined(__arm64__)
-        libPath = appDir + "/../third/webrtc_apm/linux/arm64/libwebrtc_apm.so";
+        searchPaths << appDir + "/../third/webrtc_apm/linux/arm64/libwebrtc_apm.so";
     #else
-        libPath = appDir + "/../third/webrtc_apm/linux/x64/libwebrtc_apm.so";
+        searchPaths << appDir + "/../third/webrtc_apm/linux/x64/libwebrtc_apm.so";
     #endif
 #endif
     
-    qDebug() << "尝试加载WebRTC库:" << libPath;
+    // 尝试所有搜索路径
+    for (const QString& path : searchPaths) {
+        qDebug() << "尝试加载WebRTC库:" << path;
+        if (QFile::exists(path)) {
+            libPath = path;
+            qDebug() << "找到WebRTC库:" << libPath;
+            break;
+        }
+    }
     
-    if (!QFile::exists(libPath)) {
-        qWarning() << "WebRTC库文件不存在:" << libPath;
+    if (libPath.isEmpty()) {
+        qWarning() << "WebRTC库文件不存在，尝试的路径:";
+        for (const QString& path : searchPaths) {
+            qWarning() << "  -" << path;
+        }
         return false;
     }
     
