@@ -15,10 +15,10 @@ WebSocketManager::WebSocketManager(QObject *parent)
     , m_heartbeatTimer(nullptr)
     , m_pongTimer(nullptr)
     , m_pongReceived(true)
-    , m_heartbeatInterval(15000) // 15秒 - 缩短心跳间隔以保持连接
-    , m_pongTimeout(10000) // 10秒
+    , m_heartbeatInterval(20000) // 20秒 - 与py-xiaozhi保持一致
+    , m_pongTimeout(20000) // 20秒 - 与py-xiaozhi保持一致
     , m_reconnectTimer(nullptr)
-    , m_reconnectInterval(5000) // 5秒后重连
+    , m_reconnectInterval(3000) // 3秒后重连（更快）
     , m_reconnectAttempts(0)
     , m_maxReconnectAttempts(999) // 几乎无限重连
     , m_currentState(DeviceState::DISCONNECTED)
@@ -69,12 +69,24 @@ void WebSocketManager::initializeWebSocket()
     connect(m_heartbeatTimer, &QTimer::timeout, this, &WebSocketManager::onHeartbeatTimeout);
     connect(m_pongTimer, &QTimer::timeout, [this]() {
         if (!m_pongReceived) {
-            qWarning() << "Pong timeout, connection may be lost";
-            emit connectionError("Heartbeat timeout");
-            // 触发重连
+            qWarning() << "======================================";
+            qWarning() << "心跳超时 - 没有收到服务器的pong响应";
+            qWarning() << "超时时间:" << m_pongTimeout << "ms (" << (m_pongTimeout/1000) << "秒)";
+            qWarning() << "WebSocket状态:" << m_webSocket->state();
+            qWarning() << "======================================";
+            
+            // 立即停止心跳，避免在关闭过程中再次触发
+            stopHeartbeat();
+            
+            emit connectionError("心跳超时，连接可能已断开");
+            
+            // 关闭连接以触发重连
             if (m_webSocket) {
+                qDebug() << "关闭WebSocket连接以触发重连...";
                 m_webSocket->close();
             }
+        } else {
+            qDebug() << "✓ Pong received on time, connection is healthy";
         }
     });
     
@@ -115,12 +127,16 @@ bool WebSocketManager::connectToServer(const QString &url, const QString &access
 
 void WebSocketManager::disconnectFromServer()
 {
-    if (m_webSocket && m_webSocket->state() == QAbstractSocket::ConnectedState) {
-        m_webSocket->close();
-    }
+    qDebug() << "Disconnecting from server...";
+    
+    // 先停止心跳，再关闭连接
     stopHeartbeat();
     m_connected = false;
     setCurrentState(DeviceState::DISCONNECTED);
+    
+    if (m_webSocket && m_webSocket->state() == QAbstractSocket::ConnectedState) {
+        m_webSocket->close();
+    }
 }
 
 bool WebSocketManager::isConnected() const
@@ -253,7 +269,10 @@ void WebSocketManager::setAccessToken(const QString &token)
 void WebSocketManager::startHeartbeat()
 {
     if (m_heartbeatTimer) {
+        qDebug() << "Starting heartbeat timer with interval:" << m_heartbeatInterval << "ms";
         m_heartbeatTimer->start(m_heartbeatInterval);
+    } else {
+        qCritical() << "Heartbeat timer is null!";
     }
 }
 
@@ -329,30 +348,25 @@ void WebSocketManager::onError(QAbstractSocket::SocketError error)
 void WebSocketManager::onHeartbeatTimeout()
 {
     if (m_webSocket && m_webSocket->state() == QAbstractSocket::ConnectedState) {
-        // 发送应用层 ping 消息（JSON 格式）
-        WebSocketMessage message;
-        message.type = MessageType::PING;
-        message.sessionId = m_sessionId;
-        message.timestamp = getCurrentTimestamp();
-        sendMessage(message);
-        
-        // 也发送 WebSocket 协议层的 ping
-        m_pongReceived = false;
+        // 使用WebSocket协议层的ping（与py-xiaozhi一致）
         m_webSocket->ping();
+        
+        // 启动pong超时检测
+        m_pongReceived = false;
         m_pongTimer->start(m_pongTimeout);
         
-        qDebug() << "Heartbeat sent (application + protocol ping)";
+        qDebug() << "Heartbeat sent (WebSocket protocol ping)";
     }
 }
 
 void WebSocketManager::onPongReceived(quint64 elapsedTime, const QByteArray &payload)
 {
-    Q_UNUSED(elapsedTime)
     Q_UNUSED(payload)
     
+    // WebSocket协议层的pong响应
     m_pongReceived = true;
     m_pongTimer->stop();
-    qDebug() << "Pong received, elapsed time:" << elapsedTime << "ms";
+    qDebug() << "✓ WebSocket pong received, RTT:" << elapsedTime << "ms";
 }
 
 void WebSocketManager::processIncomingMessage(const QString &message)
@@ -387,6 +401,9 @@ void WebSocketManager::processIncomingMessage(const QString &message)
     case MessageType::IOT:
         handleIoTMessage(wsMessage.data);
         break;
+    case MessageType::MCP:
+        handleMCPMessage(wsMessage.data);
+        break;
     case MessageType::PING:
         handlePingMessage(wsMessage.data);
         break;
@@ -415,9 +432,13 @@ WebSocketMessage WebSocketManager::parseMessage(const QJsonObject &json)
     else if (typeStr == "stt") message.type = MessageType::STT;
     else if (typeStr == "llm") message.type = MessageType::LLM;
     else if (typeStr == "iot") message.type = MessageType::IOT;
+    else if (typeStr == "mcp") message.type = MessageType::MCP;
     else if (typeStr == "ping") message.type = MessageType::PING;
     else if (typeStr == "pong") message.type = MessageType::PONG;
-    else message.type = MessageType::HELLO; // 默认
+    else {
+        qWarning() << "Unknown message type:" << typeStr;
+        message.type = MessageType::HELLO; // 默认
+    }
     
     message.data = json;
     message.sessionId = json["session_id"].toString();
@@ -443,6 +464,7 @@ void WebSocketManager::sendMessage(const WebSocketMessage &message)
         case MessageType::STT: return "stt";
         case MessageType::LLM: return "llm";
         case MessageType::IOT: return "iot";
+        case MessageType::MCP: return "mcp";
         case MessageType::PING: return "ping";
         case MessageType::PONG: return "pong";
         default: return "hello";
@@ -450,7 +472,9 @@ void WebSocketManager::sendMessage(const WebSocketMessage &message)
     }();
     
     json["session_id"] = message.sessionId;
-    json["timestamp"] = message.timestamp;
+    if (!message.timestamp.isEmpty()) {
+        json["timestamp"] = message.timestamp;
+    }
     
     // 合并数据
     for (auto it = message.data.begin(); it != message.data.end(); ++it) {
@@ -458,12 +482,29 @@ void WebSocketManager::sendMessage(const WebSocketMessage &message)
     }
     
     QJsonDocument doc(json);
-    m_webSocket->sendTextMessage(doc.toJson(QJsonDocument::Compact));
+    QString jsonString = doc.toJson(QJsonDocument::Compact);
+    
+    // 调试：打印发送的消息（仅MCP类型）
+    if (message.type == MessageType::MCP) {
+        qDebug() << "========================================";
+        qDebug() << "=== Sending MCP Response ===";
+        qDebug() << jsonString;
+        qDebug() << "========================================";
+    }
+    
+    m_webSocket->sendTextMessage(jsonString);
 }
 
 void WebSocketManager::handleHelloResponse(const QJsonObject &data)
 {
     qDebug() << "Received hello response from server";
+    
+    // 更新session_id为服务器返回的ID
+    if (data.contains("session_id")) {
+        m_sessionId = data["session_id"].toString();
+        qDebug() << "Updated session_id from server:" << m_sessionId;
+    }
+    
     setCurrentState(DeviceState::IDLE);
 }
 
@@ -543,7 +584,92 @@ void WebSocketManager::handlePongMessage(const QJsonObject &data)
     // 应用层 pong 接收，重置心跳超时
     m_pongReceived = true;
     m_pongTimer->stop();
-    qDebug() << "Received pong from server (application layer)";
+    
+    // 计算pong响应时间（如果有timestamp）
+    if (data.contains("timestamp")) {
+        QString sentTime = data["timestamp"].toString();
+        QString currentTime = getCurrentTimestamp();
+        qDebug() << "✓ Received pong from server (application layer)";
+        qDebug() << "  Sent:" << sentTime;
+        qDebug() << "  Received:" << currentTime;
+    } else {
+        qDebug() << "✓ Pong received from server (application layer)";
+    }
+}
+
+void WebSocketManager::handleMCPMessage(const QJsonObject &data)
+{
+    // MCP (Model Context Protocol) 消息处理
+    qDebug() << "Received MCP message";
+    
+    if (!data.contains("payload")) {
+        qWarning() << "MCP message missing payload";
+        return;
+    }
+    
+    QJsonObject payload = data["payload"].toObject();
+    QString method = payload["method"].toString();
+    int id = payload["id"].toInt();
+    
+    qDebug() << "MCP method:" << method << "id:" << id;
+    
+    // 处理不同的MCP方法
+    if (method == "initialize") {
+        // 初始化响应
+        QJsonObject result;
+        result["protocolVersion"] = "2024-11-05";
+        result["capabilities"] = QJsonObject();
+        result["serverInfo"] = QJsonObject{
+            {"name", "heart-mind-robot"},
+            {"version", "1.0.0"}
+        };
+        
+        QJsonObject response;
+        response["jsonrpc"] = "2.0";
+        response["id"] = id;
+        response["result"] = result;
+        
+        QJsonObject mcpResponse;
+        mcpResponse["payload"] = response;
+        
+        WebSocketMessage message;
+        message.type = MessageType::MCP;
+        message.data = mcpResponse;
+        message.sessionId = m_sessionId;
+        message.timestamp = "";  // MCP消息不需要timestamp
+        
+        sendMessage(message);
+        qDebug() << "Sent MCP initialize response";
+    }
+    else if (method == "tools/list") {
+        // 工具列表响应（返回空列表）
+        QJsonObject result;
+        result["tools"] = QJsonArray();
+        
+        QJsonObject response;
+        response["jsonrpc"] = "2.0";
+        response["id"] = id;
+        response["result"] = result;
+        
+        QJsonObject mcpResponse;
+        mcpResponse["payload"] = response;
+        
+        WebSocketMessage message;
+        message.type = MessageType::MCP;
+        message.data = mcpResponse;
+        message.sessionId = m_sessionId;
+        message.timestamp = "";  // MCP消息不需要timestamp
+        
+        sendMessage(message);
+        qDebug() << "Sent MCP tools/list response (empty)";
+    }
+    else if (method.startsWith("notifications/")) {
+        // 通知类消息，不需要响应
+        qDebug() << "MCP notification received (no response needed):" << method;
+    }
+    else {
+        qWarning() << "Unknown MCP method:" << method;
+    }
 }
 
 QString WebSocketManager::generateSessionId()
@@ -571,9 +697,16 @@ void WebSocketManager::attemptReconnect()
     m_reconnectAttempts++;
     qDebug() << "Attempting to reconnect... (attempt" << m_reconnectAttempts << ")";
     
-    // 尝试重新连接
+    // 重新连接，使用完整的连接流程（包括设置请求头）
     if (m_webSocket && m_webSocket->state() != QAbstractSocket::ConnectedState) {
-        m_webSocket->open(m_serverUrl);
+        // 设置请求头
+        QNetworkRequest request(m_serverUrl);
+        request.setRawHeader("Authorization", QString("Bearer %1").arg(m_accessToken).toUtf8());
+        request.setRawHeader("Protocol-Version", m_protocolVersion.toUtf8());
+        request.setRawHeader("Device-Id", m_deviceId.toUtf8());
+        request.setRawHeader("Client-Id", m_clientId.toUtf8());
+        
+        m_webSocket->open(request);
     }
 }
 

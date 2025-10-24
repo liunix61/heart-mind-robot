@@ -32,6 +32,7 @@ enum class MessageType {
     STT,
     LLM,
     IOT,
+    MCP,      // Model Context Protocol
     PING,
     PONG
 };
@@ -154,6 +155,7 @@ private:
     void handleIoTMessage(const QJsonObject &data);
     void handlePingMessage(const QJsonObject &data);
     void handlePongMessage(const QJsonObject &data);
+    void handleMCPMessage(const QJsonObject &data);
     void attemptReconnect();
     void startReconnect();
     void stopReconnect();
