@@ -2,6 +2,7 @@
 #include "AudioPermission.h"
 #include <QDebug>
 #include <cstring>
+#include <portaudio.h>
 
 AudioInputManager::AudioInputManager(QObject *parent)
     : QObject(parent)

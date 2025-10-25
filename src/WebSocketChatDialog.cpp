@@ -36,7 +36,7 @@ WebSocketChatDialog::WebSocketChatDialog(QWidget *parent) : QDialog(parent) {
     m_deskPetIntegration = nullptr;
     m_connected = false;
     m_isRecording = false;
-    // m_audioInputManager = std::make_unique<AudioInputManager>(); // 暂时禁用
+    m_audioInputManager = std::make_unique<AudioInputManager>();
     m_lastBotMessageTime = 0;
     m_lastUserMessageTime = 0;
     m_globalHotkey = nullptr;
@@ -366,39 +366,34 @@ void WebSocketChatDialog::updateConnectionStatus() {
 }
 
 void WebSocketChatDialog::setupAudioInput() {
-    // 暂时禁用音频输入功能
-    qDebug() << "WebSocketChatDialog: Audio input setup disabled for Windows build";
-    voiceButton->setEnabled(false);
-    return;
+    if (!m_audioInputManager) {
+        qWarning() << "WebSocketChatDialog: audio input manager is null";
+        return;
+    }
     
-    // if (!m_audioInputManager) {
-    //     qWarning() << "WebSocketChatDialog: audio input manager is null";
-    //     return;
-    // }
+    // 初始化音频输入管理器（16kHz, 单声道, 20ms帧）
+    qDebug() << "WebSocketChatDialog: initializing audio input manager...";
+    if (!m_audioInputManager->initialize(16000, 1, 20)) {
+        qWarning() << "WebSocketChatDialog: Failed to initialize audio input manager";
+        voiceButton->setEnabled(false);
+        return;
+    }
     
-    // // 初始化音频输入管理器（16kHz, 单声道, 20ms帧）
-    // qDebug() << "WebSocketChatDialog: initializing audio input manager...";
-    // if (!m_audioInputManager->initialize(16000, 1, 20)) {
-    //     qWarning() << "WebSocketChatDialog: Failed to initialize audio input manager";
-    //     voiceButton->setEnabled(false);
-    //     return;
-    // }
+    // 连接信号
+    qDebug() << "WebSocketChatDialog: connecting audio signals...";
+    connect(m_audioInputManager.get(), &AudioInputManager::audioDataEncoded,
+            this, &WebSocketChatDialog::onAudioDataEncoded);
+    connect(m_audioInputManager.get(), &AudioInputManager::recordingStateChanged,
+            this, &WebSocketChatDialog::onRecordingStateChanged);
+    connect(m_audioInputManager.get(), &AudioInputManager::errorOccurred,
+            this, &WebSocketChatDialog::onAudioError);
     
-    // // 连接信号
-    // qDebug() << "WebSocketChatDialog: connecting audio signals...";
-    // connect(m_audioInputManager.get(), &AudioInputManager::audioDataEncoded,
-    //         this, &WebSocketChatDialog::onAudioDataEncoded);
-    // connect(m_audioInputManager.get(), &AudioInputManager::recordingStateChanged,
-    //         this, &WebSocketChatDialog::onRecordingStateChanged);
-    // connect(m_audioInputManager.get(), &AudioInputManager::errorOccurred,
-    //         this, &WebSocketChatDialog::onAudioError);
+    // 配置WebRTC处理
+    qDebug() << "WebSocketChatDialog: configuring WebRTC...";
+    m_audioInputManager->configureWebRTC(false, true, true); // AEC关闭, NS开启, HighPass开启
+    m_audioInputManager->setWebRTCEnabled(true);
     
-    // // 配置WebRTC处理
-    // qDebug() << "WebSocketChatDialog: configuring WebRTC...";
-    // m_audioInputManager->configureWebRTC(false, true, true); // AEC关闭, NS开启, HighPass开启
-    // m_audioInputManager->setWebRTCEnabled(true);
-    
-    // qDebug() << "WebSocketChatDialog: Audio input setup completed";
+    qDebug() << "WebSocketChatDialog: Audio input setup completed";
 }
 
 void WebSocketChatDialog::toggleVoiceInput() {
@@ -407,57 +402,53 @@ void WebSocketChatDialog::toggleVoiceInput() {
 }
 
 void WebSocketChatDialog::startVoiceRecording() {
-    // 暂时禁用语音录制功能
-    qDebug() << "Voice recording disabled for Windows build";
-    return;
+    if (!m_audioInputManager || !m_deskPetIntegration) {
+        qWarning() << "AudioInputManager or DeskPetIntegration not available";
+        return;
+    }
     
-    // if (!m_audioInputManager || !m_deskPetIntegration) {
-    //     return;
-    // }
+    if (m_isRecording) {
+        qDebug() << "Already recording";
+        return; // 已经在录音中
+    }
     
-    // if (m_isRecording) {
-    //     return; // 已经在录音中
-    // }
+    // 打断当前的TTS播放（如果正在说话）
+    m_deskPetIntegration->interruptSpeaking();
+    qDebug() << "Interrupted current speaking if any";
     
-    // // 打断当前的TTS播放（如果正在说话）
-    // m_deskPetIntegration->interruptSpeaking();
-    // qDebug() << "Interrupted current speaking if any";
+    // 发送开始监听消息到服务器（必须先发送才能接收音频）
+    m_deskPetIntegration->startListening();
+    qDebug() << "Sent startListening to server";
     
-    // // 发送开始监听消息到服务器（必须先发送才能接收音频）
-    // m_deskPetIntegration->startListening();
-    // qDebug() << "Sent startListening to server";
+    // 开始录音
+    if (!m_audioInputManager->startRecording()) {
+        qWarning() << "Failed to start recording";
+        // 如果录音失败，也要停止监听
+        m_deskPetIntegration->stopListening();
+        return;
+    }
     
-    // // 开始录音
-    // if (!m_audioInputManager->startRecording()) {
-    //     qWarning() << "Failed to start recording";
-    //     // 如果录音失败，也要停止监听
-    //     m_deskPetIntegration->stopListening();
-    //     return;
-    // }
-    
-    // qDebug() << "Voice input started (press and hold)";
+    qDebug() << "Voice input started (press and hold)";
 }
 
 void WebSocketChatDialog::stopVoiceRecording() {
-    // 暂时禁用语音录制功能
-    qDebug() << "Voice recording disabled for Windows build";
-    return;
+    if (!m_audioInputManager || !m_deskPetIntegration) {
+        qWarning() << "AudioInputManager or DeskPetIntegration not available";
+        return;
+    }
     
-    // if (!m_audioInputManager || !m_deskPetIntegration) {
-    //     return;
-    // }
+    if (!m_isRecording) {
+        qDebug() << "Not recording";
+        return; // 没有在录音
+    }
     
-    // if (!m_isRecording) {
-    //     return; // 没有在录音
-    // }
+    // 停止录音
+    m_audioInputManager->stopRecording();
     
-    // // 停止录音
-    // m_audioInputManager->stopRecording();
+    // 发送停止监听消息到服务器
+    m_deskPetIntegration->stopListening();
     
-    // // 发送停止监听消息到服务器
-    // m_deskPetIntegration->stopListening();
-    
-    // qDebug() << "Voice input stopped (released)";
+    qDebug() << "Voice input stopped (released)";
 }
 
 void WebSocketChatDialog::onAudioDataEncoded(const QByteArray& encodedData) {

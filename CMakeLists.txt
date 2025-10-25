@@ -132,14 +132,14 @@ set(COMMON_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/DeskPetWebSocketExample.cpp
     # ${CMAKE_CURRENT_SOURCE_DIR}/src/WebSocketChatDialog.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/OpusDecoder.cpp
-    # ${CMAKE_CURRENT_SOURCE_DIR}/src/OpusEncoder.cpp
-    # ${CMAKE_CURRENT_SOURCE_DIR}/inc/OpusEncoder.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/OpusEncoder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/inc/OpusEncoder.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/OpusDecoder.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/PortAudioEngine.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/LAppWavFileHandler_stub.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/WebRTCAudioProcessor.cpp
-    # ${CMAKE_CURRENT_SOURCE_DIR}/src/AudioInputManager.cpp
-    # ${CMAKE_CURRENT_SOURCE_DIR}/inc/AudioInputManager.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/AudioInputManager.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/inc/AudioInputManager.hpp
     # ${CMAKE_CURRENT_SOURCE_DIR}/inc/GlobalHotkey.h
 )
 
@@ -157,6 +157,7 @@ if(WIN32)
         ${CMAKE_CURRENT_SOURCE_DIR}/src/MouseEvent.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/mainwindow.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/AudioPermission.cpp
     )
 elseif(APPLE)
     # macOS 平台使用原有的 .mm 文件

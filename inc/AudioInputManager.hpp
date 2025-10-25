@@ -6,14 +6,8 @@
 #include <memory>
 #include "platform_config.h"
 
-#ifdef _WIN32
-    // Windows平台：使用Windows音频API，不依赖PortAudio
-    #include <windows.h>
-    #include <mmsystem.h>
-#else
-    // macOS/Linux平台：使用PortAudio
-    #include <portaudio.h>
-#endif
+// 所有平台都使用PortAudio
+#include <portaudio.h>
 
 #include "OpusEncoder.hpp"
 #include "WebRTCAudioProcessor.hpp"
@@ -71,11 +65,7 @@ signals:
 
 private:
     // 音频回调函数（必须是静态的）
-#ifdef _WIN32
-    // Windows平台：使用Windows音频API
-    static void CALLBACK audioCallback(HWAVEIN hWaveIn, UINT uMsg, DWORD_PTR dwInstance, DWORD_PTR dwParam1, DWORD_PTR dwParam2);
-#else
-    // macOS/Linux平台：使用PortAudio
+    // 所有平台都使用PortAudio
     static int audioCallback(
         const void *inputBuffer,
         void *outputBuffer,
@@ -83,7 +73,6 @@ private:
         const PaStreamCallbackTimeInfo* timeInfo,
         PaStreamCallbackFlags statusFlags,
         void *userData);
-#endif
     
     // 处理音频数据
     void processAudioData(const int16_t* pcmData, int sampleCount);
@@ -92,16 +81,9 @@ private:
     void encodeAndEmit(const int16_t* pcmData, int sampleCount);
     
     // 音频相关
-#ifdef _WIN32
-    // Windows平台：使用Windows音频API
-    HWAVEIN m_hWaveIn;
-    WAVEHDR m_waveHeader;
-    bool m_waveInitialized;
-#else
-    // macOS/Linux平台：使用PortAudio
+    // 所有平台都使用PortAudio
     PaStream* m_stream;
     bool m_paInitialized;
-#endif
     
     // Opus编码器
     std::unique_ptr<OpusEncoder> m_opusEncoder;
