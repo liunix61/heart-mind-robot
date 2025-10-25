@@ -17,7 +17,7 @@ PortAudioEngine::PortAudioEngine(QObject *parent)
     , m_outputDeviceId(-1)
     , m_needsResampling(false)
     , m_deviceSampleRate(24000)
-    , m_resampler(nullptr)
+    , m_resampleRatio(1.0)
     , m_processingThread(nullptr)
     , m_shouldStop(false)
 {
@@ -29,11 +29,8 @@ PortAudioEngine::~PortAudioEngine()
     stopPlayback();
     cleanupAudioStream();
     
-    if (m_resampler) {
-        // 清理重采样器
-        // src_delete(static_cast<SRC_STATE*>(m_resampler));
-        m_resampler = nullptr;
-    }
+    // 清理重采样缓冲区
+    m_resampleBuffer.clear();
     
     CF_LOG_INFO("PortAudioEngine: Destructor completed");
 }
@@ -298,48 +295,113 @@ void PortAudioEngine::handleAudioCallback(void *outputBuffer, unsigned long fram
         return; // 无数据时输出静音
     }
     
-    // 累积音频数据，避免重复播放
-    static QByteArray accumulatedData;
+    // 使用成员变量和互斥锁，确保线程安全
+    QMutexLocker accumulatedLocker(&m_accumulatedDataMutex);
     
-    // 如果累积数据不足，从队列中获取更多数据
-    while (accumulatedData.size() < samplesNeeded * sizeof(int16_t) && !m_audioQueue.isEmpty()) {
+    // 如果累积数据不足，从队列中获取更多数据（限制循环次数防止无限循环）
+    int maxIterations = 10; // 最大循环次数
+    int iterationCount = 0;
+    
+    while (m_accumulatedData.size() < samplesNeeded * sizeof(int16_t) && 
+           !m_audioQueue.isEmpty() && 
+           iterationCount < maxIterations) {
+        
         QByteArray audioData = m_audioQueue.dequeue();
         
         // 如果需要重采样
         if (m_needsResampling) {
-            audioData = resampleAudio(audioData);
+            QByteArray resampledData = resampleAudio(audioData);
+            if (!resampledData.isEmpty()) {
+                audioData = resampledData;
+            } else {
+                CF_LOG_ERROR("PortAudioEngine: Resampling failed, using original data");
+                // 如果重采样失败，使用原始数据
+            }
         }
         
-        accumulatedData.append(audioData);
+        if (!audioData.isEmpty()) {
+            m_accumulatedData.append(audioData);
+        } else {
+            CF_LOG_ERROR("PortAudioEngine: Empty audio data, skipping");
+        }
+        iterationCount++;
+        
+        CF_LOG_INFO("PortAudioEngine: Audio callback iteration %d, accumulated: %d bytes", 
+                   iterationCount, m_accumulatedData.size());
+    }
+    
+    if (iterationCount >= maxIterations) {
+        CF_LOG_ERROR("PortAudioEngine: Audio callback reached max iterations, possible infinite loop!");
     }
     
     // 复制数据到输出缓冲区
-    int samplesToCopy = qMin(samplesNeeded, static_cast<int>(accumulatedData.size() / sizeof(int16_t)));
+    int samplesToCopy = qMin(samplesNeeded, static_cast<int>(m_accumulatedData.size() / sizeof(int16_t)));
     if (samplesToCopy > 0) {
-        memcpy(output, accumulatedData.constData(), samplesToCopy * sizeof(int16_t));
+        memcpy(output, m_accumulatedData.constData(), samplesToCopy * sizeof(int16_t));
         
         // 移除已播放的数据
-        accumulatedData.remove(0, samplesToCopy * sizeof(int16_t));
+        m_accumulatedData.remove(0, samplesToCopy * sizeof(int16_t));
     }
 }
 
 bool PortAudioEngine::initializeResampler(int inputRate, int outputRate)
 {
-    // 这里应该使用libsamplerate或其他重采样库
-    // 为了简化，这里只是标记需要重采样
-    CF_LOG_INFO("PortAudioEngine: Resampler needed: %d -> %d Hz", inputRate, outputRate);
+    CF_LOG_INFO("PortAudioEngine: Initializing resampler: %d -> %d Hz", inputRate, outputRate);
     
-    // TODO: 实现真正的重采样器
-    // m_resampler = src_new(SRC_SINC_FASTEST, m_channels, &error);
+    // 计算重采样比例
+    m_resampleRatio = static_cast<double>(outputRate) / static_cast<double>(inputRate);
+    CF_LOG_INFO("PortAudioEngine: Resample ratio: %.3f", m_resampleRatio);
     
-    return true; // 临时返回true
+    // 初始化重采样缓冲区
+    m_resampleBuffer.clear();
+    m_resampleBuffer.reserve(8192); // 预分配缓冲区
+    
+    return true;
 }
 
 QByteArray PortAudioEngine::resampleAudio(const QByteArray &inputData)
 {
-    // TODO: 实现真正的重采样
-    // 这里暂时直接返回原始数据
-    return inputData;
+    if (!m_needsResampling || inputData.isEmpty()) {
+        return inputData;
+    }
+    
+    const int16_t *inputSamples = reinterpret_cast<const int16_t*>(inputData.constData());
+    int inputSampleCount = inputData.size() / sizeof(int16_t);
+    
+    // 计算输出样本数量
+    int outputSampleCount = static_cast<int>(inputSampleCount * m_resampleRatio);
+    if (outputSampleCount <= 0 || inputSampleCount <= 0) {
+        CF_LOG_ERROR("PortAudioEngine: Invalid sample count for resampling: input=%d, output=%d", inputSampleCount, outputSampleCount);
+        return QByteArray();
+    }
+    
+    QByteArray outputData;
+    outputData.resize(outputSampleCount * sizeof(int16_t));
+    int16_t *outputSamples = reinterpret_cast<int16_t*>(outputData.data());
+    
+    // 线性插值重采样
+    for (int i = 0; i < outputSampleCount; i++) {
+        double inputIndex = i / m_resampleRatio;
+        int inputIndexInt = static_cast<int>(inputIndex);
+        double fraction = inputIndex - inputIndexInt;
+        
+        if (inputIndexInt >= inputSampleCount - 1 || inputIndexInt < 0) {
+            // 超出范围，使用最后一个样本或第一个样本
+            if (inputIndexInt >= inputSampleCount - 1) {
+                outputSamples[i] = inputSamples[inputSampleCount - 1];
+            } else {
+                outputSamples[i] = inputSamples[0];
+            }
+        } else {
+            // 线性插值
+            int16_t sample1 = inputSamples[inputIndexInt];
+            int16_t sample2 = inputSamples[inputIndexInt + 1];
+            outputSamples[i] = static_cast<int16_t>(sample1 + fraction * (sample2 - sample1));
+        }
+    }
+    
+    CF_LOG_INFO("PortAudioEngine: Resampled %d -> %d samples", inputSampleCount, outputSampleCount);
+    return outputData;
 }
 
 void PortAudioEngine::cleanupAudioStream()

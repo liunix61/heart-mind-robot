@@ -444,12 +444,22 @@ void AudioPlayer::clearAudioQueue()
     }
     
     // 停止并重置当前的音频播放
-    WINDOWS_SPECIFIC(
-        if (audioPlayer) {
-            static_cast<WindowsAudioEngine*>(audioPlayer)->resetPlayback();
-            CF_LOG_INFO("AudioPlayer: Windows audio engine reset");
+    if (audioPlayer) {
+        // 检查是否为PortAudio引擎
+        PortAudioEngine *portAudioEngine = qobject_cast<PortAudioEngine*>(static_cast<QObject*>(audioPlayer));
+        if (portAudioEngine) {
+            // 清理PortAudio引擎
+            portAudioEngine->clearQueue();
+            portAudioEngine->stopPlayback();
+            CF_LOG_INFO("AudioPlayer: PortAudio engine cleared and stopped");
+        } else {
+            // 回退到Windows音频引擎
+            WINDOWS_SPECIFIC(
+                static_cast<WindowsAudioEngine*>(audioPlayer)->resetPlayback();
+                CF_LOG_INFO("AudioPlayer: Windows audio engine reset");
+            )
         }
-    )
+    }
 }
 
 // 处理解码后的PCM数据播放

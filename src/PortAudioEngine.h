@@ -100,7 +100,12 @@ private:
     // 重采样相关
     bool m_needsResampling;
     int m_deviceSampleRate;
-    void *m_resampler; // 使用libsamplerate或类似库
+    double m_resampleRatio;
+    QByteArray m_resampleBuffer;
+    
+    // 音频累积缓冲区（线程安全）
+    QByteArray m_accumulatedData;
+    mutable QMutex m_accumulatedDataMutex;
     
     // 播放控制
     QThread *m_processingThread;
