@@ -21,21 +21,39 @@ find_package(Qt6 COMPONENTS WebSockets REQUIRED) # 添加WebSocket支持
 find_package(Qt6 COMPONENTS Multimedia REQUIRED) # 添加qt多媒体模块
 find_package(Qt6 COMPONENTS Network REQUIRED) # 添加qt网络模块
 
-# 查找PortAudio
+# 使用本地编译好的PortAudio库
 if(WIN32)
-    # Windows平台：PortAudio是可选的，主要用于音频输入
-    # 我们的修复使用DirectSound进行音频播放，不依赖PortAudio
-    message(STATUS "Windows平台：跳过PortAudio检查，使用DirectSound进行音频播放")
-    set(PORTAUDIO_INCLUDE_DIR "")
-    set(PORTAUDIO_LIBRARY "")
-else()
-    # macOS/Linux平台：需要PortAudio
-    find_path(PORTAUDIO_INCLUDE_DIR portaudio.h PATHS /usr/local/include)
-    find_library(PORTAUDIO_LIBRARY portaudio PATHS /usr/local/lib)
-    if(NOT PORTAUDIO_INCLUDE_DIR OR NOT PORTAUDIO_LIBRARY)
-        message(FATAL_ERROR "PortAudio not found! Please install: brew install portaudio")
-    endif()
+    set(PORTAUDIO_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/third/portAudio/x64")
+    set(PORTAUDIO_LIBRARY "${CMAKE_CURRENT_SOURCE_DIR}/third/portAudio/x64/portaudio.lib")
+    message(STATUS "Using local PortAudio library: ${PORTAUDIO_LIBRARY}")
     include_directories(${PORTAUDIO_INCLUDE_DIR})
+else()
+    # macOS/Linux平台：查找系统安装的PortAudio
+    find_path(PORTAUDIO_INCLUDE_DIR portaudio.h 
+        PATHS 
+        /usr/local/include
+        /usr/include
+    )
+    
+    find_library(PORTAUDIO_LIBRARY portaudio 
+        PATHS 
+        /usr/local/lib
+        /usr/lib
+    )
+    
+    if(NOT PORTAUDIO_INCLUDE_DIR OR NOT PORTAUDIO_LIBRARY)
+        message(WARNING "PortAudio not found! Please install:")
+        if(APPLE)
+            message(WARNING "  macOS: brew install portaudio")
+        else()
+            message(WARNING "  Linux: sudo apt-get install libportaudio2-dev")
+        endif()
+        set(PORTAUDIO_INCLUDE_DIR "")
+        set(PORTAUDIO_LIBRARY "")
+    else()
+        message(STATUS "PortAudio found: ${PORTAUDIO_INCLUDE_DIR}")
+        include_directories(${PORTAUDIO_INCLUDE_DIR})
+    endif()
 endif()
 #find_library(APPLICATION_SERVICES_FRAMEWORK ApplicationServices)
 #
@@ -117,6 +135,7 @@ set(COMMON_SOURCES
     # ${CMAKE_CURRENT_SOURCE_DIR}/src/OpusEncoder.cpp
     # ${CMAKE_CURRENT_SOURCE_DIR}/inc/OpusEncoder.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/OpusDecoder.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/PortAudioEngine.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/LAppWavFileHandler_stub.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/WebRTCAudioProcessor.cpp
     # ${CMAKE_CURRENT_SOURCE_DIR}/src/AudioInputManager.cpp

@@ -1,6 +1,7 @@
 #include "AudioUtil.h"
 #include "Log_util.h"
 #include "platform_config.h"
+#include "PortAudioEngine.h"
 
 #ifdef _WIN32
 #include <windows.h>
@@ -66,8 +67,8 @@ public:
         // 创建流式播放的辅助缓冲区（较大的缓冲区用于流式播放）
         m_sampleRate = sampleRate;
         m_channels = channels;
-        // 使用更大的缓冲区来支持流式播放，避免音频中断
-        m_bufferSize = sampleRate * channels * 2 * 3; // 3秒的缓冲区，提供更好的流式播放体验
+        // 使用适中的缓冲区来支持流式播放，减少延迟和噪音
+        m_bufferSize = sampleRate * channels * 2 * 1; // 1秒的缓冲区，减少延迟
         
         WAVEFORMATEX streamFormat = {};
         streamFormat.wFormatTag = WAVE_FORMAT_PCM;
@@ -165,9 +166,9 @@ public:
                 m_accumulatedData.remove(0, bytesToWrite);
             }
             
-            // 如果还没有开始播放，开始播放
+            // 如果还没有开始播放，开始播放（不使用循环模式）
             if (!m_isPlaying) {
-                hr = m_secondaryBuffer->Play(0, 0, DSBPLAY_LOOPING);
+                hr = m_secondaryBuffer->Play(0, 0, 0); // 不使用DSBPLAY_LOOPING
                 if (SUCCEEDED(hr)) {
                     m_isPlaying = true;
                     CF_LOG_INFO("WindowsAudioEngine: Started streaming playback");
@@ -257,15 +258,17 @@ private:
 AudioPlayer::AudioPlayer(QObject *parent) 
     : QObject(parent), m_opusDecoder(nullptr)
 {
-    WINDOWS_SPECIFIC(
-        CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
-        audioPlayer = new WindowsAudioEngine();
-        if (!static_cast<WindowsAudioEngine*>(audioPlayer)->initialize(24000, 1)) {
-            CF_LOG_ERROR("Failed to initialize Windows audio engine");
-            delete static_cast<WindowsAudioEngine*>(audioPlayer);
-            audioPlayer = nullptr;
-        }
-    )
+    // 强制使用PortAudio引擎（跨平台，更好的性能）
+    CF_LOG_INFO("AudioPlayer: Initializing PortAudio engine (mandatory)...");
+    audioPlayer = new PortAudioEngine(this);
+    if (!static_cast<PortAudioEngine*>(audioPlayer)->initialize(24000, 1)) {
+        CF_LOG_ERROR("PortAudio engine initialization FAILED - this is mandatory!");
+        delete static_cast<PortAudioEngine*>(audioPlayer);
+        audioPlayer = nullptr;
+        CF_LOG_ERROR("AudioPlayer: Cannot proceed without PortAudio - application will have no audio!");
+    } else {
+        CF_LOG_INFO("PortAudio engine initialized successfully - audio ready!");
+    }
     
     // 创建并启动音频播放线程（包含Opus解码器）
     m_playbackThread = new AudioPlaybackThread(this);
@@ -452,9 +455,20 @@ void AudioPlayer::clearAudioQueue()
 // 处理解码后的PCM数据播放
 void AudioPlayer::onPCMDataReady(const QByteArray &pcmData)
 {
-    WINDOWS_SPECIFIC(
-        if (audioPlayer) {
-            static_cast<WindowsAudioEngine*>(audioPlayer)->playPCMData(pcmData);
+    if (!audioPlayer) {
+        CF_LOG_ERROR("AudioPlayer: No audio engine available - PortAudio required!");
+        return;
+    }
+    
+    // 强制使用PortAudio引擎
+    PortAudioEngine *portAudioEngine = qobject_cast<PortAudioEngine*>(static_cast<QObject*>(audioPlayer));
+    if (portAudioEngine) {
+        // 使用PortAudio引擎
+        portAudioEngine->enqueueAudio(pcmData);
+        if (!portAudioEngine->isPlaying()) {
+            portAudioEngine->startPlayback();
         }
-    )
+    } else {
+        CF_LOG_ERROR("AudioPlayer: PortAudio engine not available - audio will not play!");
+    }
 }
