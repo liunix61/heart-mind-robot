@@ -10,6 +10,10 @@
 #include "MouseEvent.h"
 #include "platform_config.h"
 
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
 /// TODO 官方框架自带的json解析器似乎有问题，时而崩溃？需要排查一下。还有动画播放卡顿（Idle结束的时候）
 
 bool checkActivationStatus() {
@@ -54,6 +58,10 @@ bool showActivationDialog(QApplication& app) {
 }
 
 int main(int argc, char *argv[]) {
+#ifdef _WIN32
+    // 隐藏控制台窗口
+    FreeConsole();
+#endif
     qDebug() << "=== Main function started ===";
     event_handler::get_instance();
     qDebug() << "Event handler initialized";

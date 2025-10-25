@@ -158,6 +158,7 @@ if(WIN32)
         ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/mainwindow.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/AudioPermission.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/app.rc
     )
 elseif(APPLE)
     # macOS 平台使用原有的 .mm 文件
@@ -197,6 +198,19 @@ if(APPLE)
 else()
     add_executable(HeartMindRobot ${PLATFORM_SOURCES})
     set_target_properties(HeartMindRobot PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+    
+    # Windows: 设置为窗口应用程序，隐藏控制台窗口
+    if(WIN32)
+        set_target_properties(HeartMindRobot PROPERTIES
+            WIN32_EXECUTABLE TRUE
+        )
+        # 设置链接器选项以隐藏控制台窗口
+        set_target_properties(HeartMindRobot PROPERTIES
+            LINK_FLAGS "/SUBSYSTEM:WINDOWS"
+        )
+        # 启用资源编译器
+        enable_language(RC)
+    endif()
     
     # Windows: 复制必要的 DLL 文件到输出目录
     if(WIN32)
