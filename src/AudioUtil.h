@@ -60,6 +60,10 @@ signals:
     // 转发解码后的音频数据
     void audioDecoded(const QByteArray &pcmData);
 
+private slots:
+    // 处理解码后的PCM数据播放
+    void onPCMDataReady(const QByteArray &pcmData);
+
 private:
     // 音频播放工作线程（包含Opus解码器）
     AudioPlaybackThread *m_playbackThread;

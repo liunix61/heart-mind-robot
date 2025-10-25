@@ -66,6 +66,8 @@ target_sources(HeartMindRobot
       ${CMAKE_CURRENT_SOURCE_DIR}/TouchManager.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/AudioUtil.h
         ${CMAKE_CURRENT_SOURCE_DIR}/AudioUtil.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/OpusDecoder.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/OpusDecoder.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/Networkutil.h
         ${CMAKE_CURRENT_SOURCE_DIR}/Networkutil.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/ChatDialog.h

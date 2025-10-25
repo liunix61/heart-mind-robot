@@ -60,7 +60,7 @@ QByteArray OpusDecoder::decode(const QByteArray &opusData)
     int maxFrameSize = m_sampleRate * 0.02; // 20ms
     int maxSamples = maxFrameSize * m_channels;
     
-    // 准备PCM缓冲区
+    // 准备PCM缓冲区（使用float类型，因为opus_decode期望float*）
     QByteArray pcmData(maxSamples * sizeof(opus_int16), 0);
     opus_int16 *pcmBuffer = reinterpret_cast<opus_int16*>(pcmData.data());
     

@@ -22,12 +22,21 @@ find_package(Qt6 COMPONENTS Multimedia REQUIRED) # 添加qt多媒体模块
 find_package(Qt6 COMPONENTS Network REQUIRED) # 添加qt网络模块
 
 # 查找PortAudio
-find_path(PORTAUDIO_INCLUDE_DIR portaudio.h PATHS /usr/local/include)
-find_library(PORTAUDIO_LIBRARY portaudio PATHS /usr/local/lib)
-if(NOT PORTAUDIO_INCLUDE_DIR OR NOT PORTAUDIO_LIBRARY)
-    message(FATAL_ERROR "PortAudio not found! Please install: brew install portaudio")
+if(WIN32)
+    # Windows平台：PortAudio是可选的，主要用于音频输入
+    # 我们的修复使用DirectSound进行音频播放，不依赖PortAudio
+    message(STATUS "Windows平台：跳过PortAudio检查，使用DirectSound进行音频播放")
+    set(PORTAUDIO_INCLUDE_DIR "")
+    set(PORTAUDIO_LIBRARY "")
+else()
+    # macOS/Linux平台：需要PortAudio
+    find_path(PORTAUDIO_INCLUDE_DIR portaudio.h PATHS /usr/local/include)
+    find_library(PORTAUDIO_LIBRARY portaudio PATHS /usr/local/lib)
+    if(NOT PORTAUDIO_INCLUDE_DIR OR NOT PORTAUDIO_LIBRARY)
+        message(FATAL_ERROR "PortAudio not found! Please install: brew install portaudio")
+    endif()
+    include_directories(${PORTAUDIO_INCLUDE_DIR})
 endif()
-include_directories(${PORTAUDIO_INCLUDE_DIR})
 #find_library(APPLICATION_SERVICES_FRAMEWORK ApplicationServices)
 #
 #if (NOT APPLICATION_SERVICES_FRAMEWORK)
@@ -72,7 +81,7 @@ include_directories(Framework/src)
 include_directories(src/glwidget.h)
 include_directories(third/stb)
 if(WIN32)
-    include_directories(third/libopus/include)
+    include_directories(third/libopus_v1.4_msvc17/include)
 else()
     include_directories(/usr/local/include/opus)
 endif()
@@ -104,10 +113,9 @@ set(COMMON_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/DeskPetIntegration.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/DeskPetWebSocketExample.cpp
     # ${CMAKE_CURRENT_SOURCE_DIR}/src/WebSocketChatDialog.cpp
-    # ${CMAKE_CURRENT_SOURCE_DIR}/src/OpusDecoder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/OpusDecoder.cpp
     # ${CMAKE_CURRENT_SOURCE_DIR}/src/OpusEncoder.cpp
     # ${CMAKE_CURRENT_SOURCE_DIR}/inc/OpusEncoder.hpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/OpusDecoder_stub.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/OpusDecoder.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/LAppWavFileHandler_stub.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/WebRTCAudioProcessor.cpp
@@ -244,7 +252,9 @@ endif()
 add_subdirectory(src)
 
 if(WIN32)
-    target_link_libraries(HeartMindRobot PRIVATE glew_s OpenGL::GL Qt6::Widgets Qt6::OpenGL Framework Qt6::OpenGLWidgets glfw Qt6::Network Qt6::WebSockets Qt6::Multimedia winmm ${PORTAUDIO_LIBRARY})
+    # Windows平台：添加opus库路径
+    link_directories(${CMAKE_CURRENT_SOURCE_DIR}/third/libopus_v1.4_msvc17/lib/x64)
+    target_link_libraries(HeartMindRobot PRIVATE glew_s OpenGL::GL Qt6::Widgets Qt6::OpenGL Framework Qt6::OpenGLWidgets glfw Qt6::Network Qt6::WebSockets Qt6::Multimedia winmm dsound ${CMAKE_CURRENT_SOURCE_DIR}/third/libopus_v1.4_msvc17/lib/x64/libopus.lib ${PORTAUDIO_LIBRARY})
 elseif(APPLE)
     target_link_libraries(HeartMindRobot PRIVATE Qt6::Widgets Qt6::OpenGL glew_s Framework Qt6::OpenGLWidgets "-framework Cocoa -framework AVFoundation -framework CoreAudio -framework AudioToolbox -framework Carbon" glfw Qt6::Network Qt6::WebSockets Qt6::Multimedia opus ${PORTAUDIO_LIBRARY})
 endif()
