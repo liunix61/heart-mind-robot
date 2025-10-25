@@ -66,7 +66,8 @@ public:
         // 创建流式播放的辅助缓冲区（较大的缓冲区用于流式播放）
         m_sampleRate = sampleRate;
         m_channels = channels;
-        m_bufferSize = sampleRate * channels * 2 * 2; // 2秒的缓冲区
+        // 使用更大的缓冲区来支持流式播放，避免音频中断
+        m_bufferSize = sampleRate * channels * 2 * 3; // 3秒的缓冲区，提供更好的流式播放体验
         
         WAVEFORMATEX streamFormat = {};
         streamFormat.wFormatTag = WAVE_FORMAT_PCM;
@@ -100,24 +101,69 @@ public:
             return;
         }
         
-        CF_LOG_INFO("WindowsAudioEngine: Streaming %d bytes of PCM data", pcmData.size());
+        // 累积音频数据，减少频繁的小块写入
+        m_accumulatedData.append(pcmData);
+        
+        // 如果累积的数据足够大，或者这是最后一块数据，则写入缓冲区
+        if (m_accumulatedData.size() >= MIN_WRITE_SIZE) {
+            writeAccumulatedData();
+        }
+    }
+    
+    void writeAccumulatedData() {
+        if (m_accumulatedData.isEmpty()) {
+            return;
+        }
+        
+        CF_LOG_INFO("WindowsAudioEngine: Writing %d bytes of accumulated PCM data", m_accumulatedData.size());
+        
+        // 获取当前播放位置
+        DWORD currentPlayPosition;
+        m_secondaryBuffer->GetCurrentPosition(&currentPlayPosition, nullptr);
+        
+        // 计算可写入的数据量（避免覆盖正在播放的数据）
+        DWORD bytesToWrite = m_accumulatedData.size();
+        DWORD availableSpace = m_bufferSize - ((m_writePosition - currentPlayPosition + m_bufferSize) % m_bufferSize);
+        
+        if (bytesToWrite > availableSpace) {
+            // 如果空间不足，等待或截断数据
+            bytesToWrite = availableSpace;
+            CF_LOG_INFO("WindowsAudioEngine: Buffer space limited, writing %d bytes instead of %d", 
+                        bytesToWrite, m_accumulatedData.size());
+        }
+        
+        if (bytesToWrite == 0) {
+            CF_LOG_INFO("WindowsAudioEngine: No space available in buffer, skipping this chunk");
+            return;
+        }
         
         // 写入音频数据到流式缓冲区
         LPVOID audioPtr1, audioPtr2;
         DWORD audioBytes1, audioBytes2;
         
-        HRESULT hr = m_secondaryBuffer->Lock(m_writePosition, pcmData.size(), 
+        HRESULT hr = m_secondaryBuffer->Lock(m_writePosition, bytesToWrite, 
                                             &audioPtr1, &audioBytes1, 
                                             &audioPtr2, &audioBytes2, 0);
         if (SUCCEEDED(hr)) {
-            memcpy(audioPtr1, pcmData.constData(), audioBytes1);
-            if (audioPtr2 != nullptr) {
-                memcpy(audioPtr2, pcmData.constData() + audioBytes1, audioBytes2);
+            // 写入第一段数据
+            memcpy(audioPtr1, m_accumulatedData.constData(), audioBytes1);
+            
+            // 如果数据跨越缓冲区边界，写入第二段
+            if (audioPtr2 != nullptr && audioBytes2 > 0) {
+                memcpy(audioPtr2, m_accumulatedData.constData() + audioBytes1, audioBytes2);
             }
+            
             m_secondaryBuffer->Unlock(audioPtr1, audioBytes1, audioPtr2, audioBytes2);
             
             // 更新写入位置
-            m_writePosition = (m_writePosition + pcmData.size()) % m_bufferSize;
+            m_writePosition = (m_writePosition + bytesToWrite) % m_bufferSize;
+            
+            // 移除已写入的数据
+            if (bytesToWrite >= m_accumulatedData.size()) {
+                m_accumulatedData.clear();
+            } else {
+                m_accumulatedData.remove(0, bytesToWrite);
+            }
             
             // 如果还没有开始播放，开始播放
             if (!m_isPlaying) {
@@ -140,6 +186,37 @@ public:
             m_isPlaying = false;
             m_writePosition = 0;
             CF_LOG_INFO("WindowsAudioEngine: Stopped streaming playback");
+        }
+    }
+    
+    void resetPlayback() {
+        stopPlayback();
+        // 清空累积缓冲区
+        m_accumulatedData.clear();
+        
+        // 清空音频缓冲区
+        if (m_secondaryBuffer) {
+            LPVOID audioPtr1, audioPtr2;
+            DWORD audioBytes1, audioBytes2;
+            
+            HRESULT hr = m_secondaryBuffer->Lock(0, m_bufferSize, 
+                                                &audioPtr1, &audioBytes1, 
+                                                &audioPtr2, &audioBytes2, 0);
+            if (SUCCEEDED(hr)) {
+                memset(audioPtr1, 0, audioBytes1);
+                if (audioPtr2 != nullptr) {
+                    memset(audioPtr2, 0, audioBytes2);
+                }
+                m_secondaryBuffer->Unlock(audioPtr1, audioBytes1, audioPtr2, audioBytes2);
+                CF_LOG_INFO("WindowsAudioEngine: Buffer cleared");
+            }
+        }
+        m_writePosition = 0;
+    }
+    
+    void flushAccumulatedData() {
+        if (!m_accumulatedData.isEmpty()) {
+            writeAccumulatedData();
         }
     }
     
@@ -170,6 +247,10 @@ private:
     DWORD m_bufferSize;
     int m_sampleRate;
     int m_channels;
+    
+    // 音频数据累积缓冲区，用于优化小块数据的处理
+    QByteArray m_accumulatedData;
+    static const int MIN_WRITE_SIZE = 1024; // 最小写入大小（字节）
 };
 #endif
 
@@ -211,6 +292,8 @@ AudioPlayer::~AudioPlayer() {
     
     WINDOWS_SPECIFIC(
         if (audioPlayer) {
+            // 在清理前刷新累积的音频数据
+            static_cast<WindowsAudioEngine*>(audioPlayer)->flushAccumulatedData();
             static_cast<WindowsAudioEngine*>(audioPlayer)->cleanup();
             delete static_cast<WindowsAudioEngine*>(audioPlayer);
             audioPlayer = nullptr;
@@ -334,13 +417,8 @@ void AudioPlaybackThread::processAudioData(const QByteArray &audioData)
     
     CF_LOG_INFO("AudioPlaybackThread: Successfully decoded to %d bytes PCM", pcmData.size());
     
-    // 播放PCM数据
-    WINDOWS_SPECIFIC(
-        // 这里需要访问AudioPlayer的WindowsAudioEngine
-        // 由于线程限制，我们通过信号传递PCM数据给主线程播放
-    )
-    
     // 发射信号，用于口型同步和播放
+    // 在Windows下，PCM数据通过信号传递给主线程的AudioPlayer进行播放
     CF_LOG_INFO("========================================");
     CF_LOG_INFO("AudioPlaybackThread: EMITTING audioDecoded signal!");
     CF_LOG_INFO("PCM size: %d bytes", pcmData.size());
@@ -362,10 +440,11 @@ void AudioPlayer::clearAudioQueue()
         CF_LOG_ERROR("AudioPlayer: Playback thread not available");
     }
     
-    // 停止当前的音频播放
+    // 停止并重置当前的音频播放
     WINDOWS_SPECIFIC(
         if (audioPlayer) {
-            static_cast<WindowsAudioEngine*>(audioPlayer)->stopPlayback();
+            static_cast<WindowsAudioEngine*>(audioPlayer)->resetPlayback();
+            CF_LOG_INFO("AudioPlayer: Windows audio engine reset");
         }
     )
 }
