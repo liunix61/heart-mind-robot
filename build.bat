@@ -41,15 +41,34 @@ rem 创建构建目录
 mkdir "%BUILD_DIR%"
 cd "%BUILD_DIR%"
 
+rem 设置Qt6环境变量
+set QT6_ROOT=D:\Qt\6.9.3\msvc2022_64
+set CMAKE_PREFIX_PATH=%QT6_ROOT%
+set PATH=%QT6_ROOT%\bin;%PATH%
+
+rem 检查Qt6路径是否存在
+if not exist "%QT6_ROOT%" (
+    echo 错误: Qt6 路径不存在: %QT6_ROOT%
+    echo 请检查Qt6安装路径是否正确
+    exit /b 1
+)
+
+if not exist "%QT6_ROOT%\bin\qmake.exe" (
+    echo 错误: 在 %QT6_ROOT%\bin\ 中未找到 qmake.exe
+    echo 请检查Qt6安装是否完整
+    exit /b 1
+)
+
 rem 配置CMake
 if "%PLATFORM%"=="windows" (
     echo 配置 Windows 构建...
+    echo Qt6 路径: %QT6_ROOT%
     if "%CROSS_COMPILE%"=="true" (
         echo 错误: Windows不支持交叉编译
         echo 请使用原生Windows环境构建
         exit /b 1
     )
-    cmake -G "Visual Studio 17 2022" -A x64 ..
+    cmake -G "Visual Studio 17 2022" -A x64 -DCMAKE_PREFIX_PATH=%QT6_ROOT% ..
 ) else if "%PLATFORM%"=="macos" (
     echo 配置 macOS 构建...
     if "%CROSS_COMPILE%"=="true" (
@@ -122,6 +141,11 @@ echo 示例:
 echo   build.bat windows                    # 构建Windows版本
 echo   build.bat windows x86_64            # 构建Windows x86_64版本
 echo   build.bat linux x86_64 true         # 交叉编译Linux x86_64版本
+echo.
+echo 要求:
+echo   Qt6: 需要安装在 D:\Qt\6.9.3\msvc2022_64
+echo   Visual Studio: 需要 Visual Studio 2022
+echo   CMake: 需要 CMake 3.10 或更高版本
 echo.
 echo 交叉编译要求:
 echo   Linux: 需要安装交叉编译工具链
