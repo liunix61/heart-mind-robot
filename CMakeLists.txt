@@ -147,13 +147,13 @@ set(COMMON_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/WebRTCAudioProcessor.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/AudioInputManager.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/inc/AudioInputManager.hpp
-    # ${CMAKE_CURRENT_SOURCE_DIR}/inc/GlobalHotkey.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/inc/GlobalHotkey.h
 )
 
 # macOS特定源文件（需要Objective-C++）
 set(MACOS_SPECIFIC_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/AudioPermission.mm
-    # ${CMAKE_CURRENT_SOURCE_DIR}/src/GlobalHotkey.mm
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/GlobalHotkey.mm
 )
 
 # 平台特定的源文件

@@ -148,17 +148,17 @@ WebSocketChatDialog::WebSocketChatDialog(QWidget *parent) : QDialog(parent) {
     // 设置音频输入
     setupAudioInput();
     
-    // 设置全局热键 (Cmd+Shift+V) - 暂时禁用
-    // m_globalHotkey = new GlobalHotkey(this);
-    // if (m_globalHotkey->registerHotkey()) {
-    //     connect(m_globalHotkey, &GlobalHotkey::hotkeyPressed, 
-    //             this, &WebSocketChatDialog::startVoiceRecording);
-    //     connect(m_globalHotkey, &GlobalHotkey::hotkeyReleased, 
-    //             this, &WebSocketChatDialog::stopVoiceRecording);
-    //     qDebug() << "Global hotkey (Cmd+Shift+V) registered for voice input";
-    // } else {
-    //     qWarning() << "Failed to register global hotkey";
-    // }
+    // 设置全局热键 (Cmd+Shift+V)
+    m_globalHotkey = new GlobalHotkey(this);
+    if (m_globalHotkey->registerHotkey()) {
+        connect(m_globalHotkey, &GlobalHotkey::hotkeyPressed, 
+                this, &WebSocketChatDialog::startVoiceRecording);
+        connect(m_globalHotkey, &GlobalHotkey::hotkeyReleased, 
+                this, &WebSocketChatDialog::stopVoiceRecording);
+        qDebug() << "Global hotkey (Cmd+Shift+V) registered for voice input";
+    } else {
+        qWarning() << "Failed to register global hotkey";
+    }
     
     // 设置初始状态
     updateConnectionStatus();
