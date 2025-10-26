@@ -86,7 +86,14 @@ add_subdirectory(${GLEW_PATH}/build/cmake)
 add_subdirectory(${GLFW_PATH})
 set(FRAMEWORK_SOURCE OpenGL)
 add_subdirectory(Framework)
-target_compile_definitions(Framework PUBLIC CSM_TARGET_MAC_GL CSM_TARGET_WIN_GL)
+# 根据平台定义不同的宏
+if(WIN32)
+    target_compile_definitions(Framework PUBLIC CSM_TARGET_WIN_GL)
+elseif(APPLE)
+    target_compile_definitions(Framework PUBLIC CSM_TARGET_MAC_GL)
+elseif(UNIX)
+    target_compile_definitions(Framework PUBLIC CSM_TARGET_LINUX_GL)
+endif()
 target_include_directories(Framework PUBLIC ${GLEW_PATH}/include)
 target_link_libraries(Framework Live2DCubismCore glew_s)
 find_package(OpenGL REQUIRED)
@@ -130,7 +137,7 @@ set(COMMON_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/DeskPetController.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/DeskPetIntegration.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/DeskPetWebSocketExample.cpp
-    # ${CMAKE_CURRENT_SOURCE_DIR}/src/WebSocketChatDialog.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/WebSocketChatDialog.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/OpusDecoder.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/OpusEncoder.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/inc/OpusEncoder.hpp

@@ -2,6 +2,7 @@
 // Created by 高煜焜 on 2023/11/4.
 //
 #include "AudioUtil.h"
+#include "PortAudioEngine.h"
 #import <AVFoundation/AVFoundation.h>
 
 // Objective-C 类用于管理音频引擎
@@ -370,5 +371,26 @@ void AudioPlayer::clearAudioQueue() {
         CF_LOG_INFO("AudioPlayer: Audio queue cleared successfully");
     } else {
         CF_LOG_ERROR("AudioPlayer: Playback thread not available");
+    }
+}
+
+// 处理解码后的PCM数据播放
+void AudioPlayer::onPCMDataReady(const QByteArray &pcmData)
+{
+    if (!audioPlayer) {
+        CF_LOG_ERROR("AudioPlayer: No audio engine available - PortAudio required!");
+        return;
+    }
+    
+    // 强制使用PortAudio引擎
+    PortAudioEngine *portAudioEngine = qobject_cast<PortAudioEngine*>(static_cast<QObject*>(audioPlayer));
+    if (portAudioEngine) {
+        // 使用PortAudio引擎
+        portAudioEngine->enqueueAudio(pcmData);
+        if (!portAudioEngine->isPlaying()) {
+            portAudioEngine->startPlayback();
+        }
+    } else {
+        CF_LOG_ERROR("AudioPlayer: PortAudio engine not available - audio will not play!");
     }
 }

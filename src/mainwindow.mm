@@ -1,4 +1,5 @@
-﻿#include "mainwindow.h"
+﻿#include <GL/glew.h>
+#include "mainwindow.h"
 #include "WebSocketChatDialog.h"
 #include <QMenu>
 #include "./ui_mainwindow.h"
