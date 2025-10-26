@@ -183,6 +183,9 @@ void LAppDelegate::InitializeCubism() {
 
     //Initialize cubism
     CubismFramework::Initialize();
+    
+    // 强制使用 OpenGL 后端，避免 DirectX 检测
+    CF_LOG_DEBUG("Forcing OpenGL backend for Live2D Cubism");
 
     //load model
     LAppLive2DManager::GetInstance();

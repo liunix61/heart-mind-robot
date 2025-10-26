@@ -18,20 +18,26 @@
 
 
 int main(int argc, char *argv[]) {
-#ifdef _WIN32
-    // 隐藏控制台窗口
-    FreeConsole();
-#endif
-    qDebug() << "=== Main function started ===";
-    event_handler::get_instance();
-    qDebug() << "Event handler initialized";
     QApplication a(argc, argv);
-    qDebug() << "QApplication created";
     
     // 设置应用程序信息
     a.setApplicationName("Live2D桌宠");
     a.setApplicationVersion("1.0.0");
     a.setOrganizationName("Live2D桌宠");
+    
+#ifdef _WIN32
+    // 隐藏控制台窗口（在QApplication创建后）
+    FreeConsole();
+    
+    // 强制使用 OpenGL 后端，避免 DirectX 检测
+    SetEnvironmentVariableA("MESA_GL_VERSION_OVERRIDE", "3.3");
+    SetEnvironmentVariableA("MESA_GLSL_VERSION_OVERRIDE", "330");
+#endif
+    
+    qDebug() << "=== Main function started ===";
+    event_handler::get_instance();
+    qDebug() << "Event handler initialized";
+    qDebug() << "QApplication created";
     
     // 解析命令行参数
     QCommandLineParser parser;

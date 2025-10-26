@@ -86,7 +86,7 @@ add_subdirectory(${GLEW_PATH}/build/cmake)
 add_subdirectory(${GLFW_PATH})
 set(FRAMEWORK_SOURCE OpenGL)
 add_subdirectory(Framework)
-target_compile_definitions(Framework PUBLIC CSM_TARGET_MAC_GL)
+target_compile_definitions(Framework PUBLIC CSM_TARGET_MAC_GL CSM_TARGET_WIN_GL)
 target_include_directories(Framework PUBLIC ${GLEW_PATH}/include)
 target_link_libraries(Framework Live2DCubismCore glew_s)
 find_package(OpenGL REQUIRED)
@@ -280,109 +280,7 @@ else()
                 $<TARGET_FILE_DIR:HeartMindRobot>/
             COMMENT "Copying Qt6 TLS plugins and OpenSSL libraries to output directory"
         )
-        
-        # 复制 Visual C++ 运行时库
-        add_custom_command(TARGET HeartMindRobot POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                "C:/Windows/System32/vcruntime140.dll"
-                $<TARGET_FILE_DIR:HeartMindRobot>/
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                "C:/Windows/System32/msvcp140.dll"
-                $<TARGET_FILE_DIR:HeartMindRobot>/
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                "C:/Windows/System32/vcruntime140_1.dll"
-                $<TARGET_FILE_DIR:HeartMindRobot>/
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                "C:/Windows/System32/ucrtbase.dll"
-                $<TARGET_FILE_DIR:HeartMindRobot>/
-            # 复制 Universal C Runtime 相关库
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                "C:/Windows/System32/api-ms-win-crt-runtime-l1-1-0.dll"
-                $<TARGET_FILE_DIR:HeartMindRobot>/
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                "C:/Windows/System32/api-ms-win-crt-string-l1-1-0.dll"
-                $<TARGET_FILE_DIR:HeartMindRobot>/
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                "C:/Windows/System32/api-ms-win-crt-time-l1-1-0.dll"
-                $<TARGET_FILE_DIR:HeartMindRobot>/
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                "C:/Windows/System32/api-ms-win-crt-convert-l1-1-0.dll"
-                $<TARGET_FILE_DIR:HeartMindRobot>/
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                "C:/Windows/System32/api-ms-win-crt-heap-l1-1-0.dll"
-                $<TARGET_FILE_DIR:HeartMindRobot>/
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                "C:/Windows/System32/api-ms-win-crt-locale-l1-1-0.dll"
-                $<TARGET_FILE_DIR:HeartMindRobot>/
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                "C:/Windows/System32/api-ms-win-crt-math-l1-1-0.dll"
-                $<TARGET_FILE_DIR:HeartMindRobot>/
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                "C:/Windows/System32/api-ms-win-crt-stdio-l1-1-0.dll"
-                $<TARGET_FILE_DIR:HeartMindRobot>/
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                "C:/Windows/System32/api-ms-win-crt-utility-l1-1-0.dll"
-                $<TARGET_FILE_DIR:HeartMindRobot>/
-            # 复制更多 Universal C Runtime 库
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                "C:/Windows/System32/api-ms-win-crt-environment-l1-1-0.dll"
-                $<TARGET_FILE_DIR:HeartMindRobot>/
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                "C:/Windows/System32/api-ms-win-crt-filesystem-l1-1-0.dll"
-                $<TARGET_FILE_DIR:HeartMindRobot>/
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                "C:/Windows/System32/api-ms-win-crt-multibyte-l1-1-0.dll"
-                $<TARGET_FILE_DIR:HeartMindRobot>/
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                "C:/Windows/System32/api-ms-win-crt-process-l1-1-0.dll"
-                $<TARGET_FILE_DIR:HeartMindRobot>/
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                "C:/Windows/System32/api-ms-win-crt-stdio-l1-1-0.dll"
-                $<TARGET_FILE_DIR:HeartMindRobot>/
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                "C:/Windows/System32/api-ms-win-crt-conio-l1-1-0.dll"
-                $<TARGET_FILE_DIR:HeartMindRobot>/
-            # 复制 msvcrt.dll 相关库
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                "C:/Windows/System32/msvcrt.dll"
-                $<TARGET_FILE_DIR:HeartMindRobot>/
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                "C:/Windows/SysWOW64/msvcrt.dll"
-                $<TARGET_FILE_DIR:HeartMindRobot>/
-            COMMENT "Copying Visual C++ runtime libraries to output directory"
-        )
-        
-        # 复制 DirectX 相关库
-        add_custom_command(TARGET HeartMindRobot POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                "C:/Windows/System32/dxgi.dll"
-                $<TARGET_FILE_DIR:HeartMindRobot>/
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                "C:/Windows/System32/d3d11.dll"
-                $<TARGET_FILE_DIR:HeartMindRobot>/
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                "C:/Windows/System32/d3dcompiler_47.dll"
-                $<TARGET_FILE_DIR:HeartMindRobot>/
-            COMMENT "Copying DirectX libraries to output directory"
-        )
-        
-        # 创建依赖检查脚本
-        add_custom_command(TARGET HeartMindRobot POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E echo "Creating dependency check script..."
-            COMMAND ${CMAKE_COMMAND} -E echo "@echo off" > $<TARGET_FILE_DIR:HeartMindRobot>/check_dependencies.bat
-            COMMAND ${CMAKE_COMMAND} -E echo "echo Checking Visual C++ Redistributable..." >> $<TARGET_FILE_DIR:HeartMindRobot>/check_dependencies.bat
-            COMMAND ${CMAKE_COMMAND} -E echo "reg query \"HKLM\\SOFTWARE\\Microsoft\\VisualStudio\\14.0\\VC\\Runtimes\\x64\" /v Version >nul 2>&1" >> $<TARGET_FILE_DIR:HeartMindRobot>/check_dependencies.bat
-            COMMAND ${CMAKE_COMMAND} -E echo "if errorlevel 1 (" >> $<TARGET_FILE_DIR:HeartMindRobot>/check_dependencies.bat
-            COMMAND ${CMAKE_COMMAND} -E echo "    echo Visual C++ 2015-2022 Redistributable not found!" >> $<TARGET_FILE_DIR:HeartMindRobot>/check_dependencies.bat
-            COMMAND ${CMAKE_COMMAND} -E echo "    echo Please install from: https://aka.ms/vs/17/release/vc_redist.x64.exe" >> $<TARGET_FILE_DIR:HeartMindRobot>/check_dependencies.bat
-            COMMAND ${CMAKE_COMMAND} -E echo "    pause" >> $<TARGET_FILE_DIR:HeartMindRobot>/check_dependencies.bat
-            COMMAND ${CMAKE_COMMAND} -E echo "    exit /b 1" >> $<TARGET_FILE_DIR:HeartMindRobot>/check_dependencies.bat
-            COMMAND ${CMAKE_COMMAND} -E echo ") else (" >> $<TARGET_FILE_DIR:HeartMindRobot>/check_dependencies.bat
-            COMMAND ${CMAKE_COMMAND} -E echo "    echo Visual C++ Redistributable found." >> $<TARGET_FILE_DIR:HeartMindRobot>/check_dependencies.bat
-            COMMAND ${CMAKE_COMMAND} -E echo ")" >> $<TARGET_FILE_DIR:HeartMindRobot>/check_dependencies.bat
-            COMMAND ${CMAKE_COMMAND} -E echo "echo All dependencies checked." >> $<TARGET_FILE_DIR:HeartMindRobot>/check_dependencies.bat
-            COMMENT "Creating dependency check script"
-        )
+
     endif()
 endif()
 
