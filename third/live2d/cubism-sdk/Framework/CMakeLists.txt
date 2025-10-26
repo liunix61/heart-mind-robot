@@ -21,7 +21,7 @@ target_include_directories(${LIB_NAME}
 
 # Add core include.
 target_include_directories(${LIB_NAME}
-  PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../third/live2d/inc
+  PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../inc
 )
 # Add definitions.
 target_compile_definitions(${LIB_NAME}
