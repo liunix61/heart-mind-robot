@@ -1,4 +1,4 @@
-﻿#include <GL/glew.h>
+﻿#include <GL/glew.h> // MUST be first before any Qt OpenGL headers
 #include "mainwindow.h"
 #include "WebSocketChatDialog.h"
 #include <QMenu>

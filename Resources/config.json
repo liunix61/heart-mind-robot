@@ -16,10 +16,10 @@
         "current_model": "Haru",
         "dialog_height": 300,
         "dialog_width": 429,
-        "dialog_x": 922,
-        "dialog_y": 393,
+        "dialog_x": 100,
+        "dialog_y": 100,
         "top": true,
-        "window_x": 2127,
-        "window_y": 899
+        "window_x": 100,
+        "window_y": 100
     }
 }
