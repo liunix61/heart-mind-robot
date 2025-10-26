@@ -194,14 +194,19 @@ if(APPLE)
         RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
     )
     
-    # 复制Resources目录到应用包（用于开发测试）
+    # 复制models和config目录到应用包（用于开发测试）
     add_custom_command(TARGET HeartMindRobot POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E make_directory 
-            $<TARGET_FILE_DIR:HeartMindRobot>/../Resources
+            $<TARGET_FILE_DIR:HeartMindRobot>/../models
+        COMMAND ${CMAKE_COMMAND} -E make_directory 
+            $<TARGET_FILE_DIR:HeartMindRobot>/../config
         COMMAND ${CMAKE_COMMAND} -E copy_directory
-            ${CMAKE_CURRENT_SOURCE_DIR}/Resources
-            $<TARGET_FILE_DIR:HeartMindRobot>/../Resources
-        COMMENT "Copying Resources directory to app bundle for development"
+            ${CMAKE_CURRENT_SOURCE_DIR}/models
+            $<TARGET_FILE_DIR:HeartMindRobot>/../models
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            ${CMAKE_CURRENT_SOURCE_DIR}/config
+            $<TARGET_FILE_DIR:HeartMindRobot>/../config
+        COMMENT "Copying models and config directories to app bundle for development"
     )
 else()
     add_executable(HeartMindRobot ${PLATFORM_SOURCES})
@@ -218,6 +223,17 @@ else()
         )
         # 启用资源编译器
         enable_language(RC)
+        
+        # 复制models和config目录到exe同层目录（Windows）
+        add_custom_command(TARGET HeartMindRobot POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+                ${CMAKE_CURRENT_SOURCE_DIR}/models
+                ${CMAKE_BINARY_DIR}/bin/models
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+                ${CMAKE_CURRENT_SOURCE_DIR}/config
+                ${CMAKE_BINARY_DIR}/bin/config
+            COMMENT "Copying models and config directories to exe directory for Windows"
+        )
     endif()
     
     # Windows: 复制必要的 DLL 文件到输出目录

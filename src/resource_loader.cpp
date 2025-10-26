@@ -18,55 +18,53 @@ bool resource_loader::initialize() {
     
 #ifdef __APPLE__
     // macOS App Bundle 结构: xxx.app/Contents/MacOS/executable
-    // Resources 在: xxx.app/Contents/Resources/
+    // config 和 models 在: xxx.app/Contents/ (与 Windows 保持一致)
     QDir appDir(appDirPath);
     if (appDir.cdUp()) { // 从 MacOS 到 Contents
-        resource_file_path = appDir.absolutePath() + "/Resources";
+        resource_file_path = appDir.absolutePath();
         CF_LOG_INFO("macOS bundle resource path: %s", resource_file_path.toStdString().c_str());
     }
 #else
-    // Windows/Linux: 简单的相对路径
-    QStringList path_list = appDirPath.split("/");
-    path_list.removeLast();
-    resource_file_path = path_list.join("/") + "/Resources";
+    // Windows/Linux: config 和 models 在 exe 同层目录
+    resource_file_path = appDirPath;
 #endif
     
-    // 检查Resources目录是否存在
+    // 检查 exe 同层目录是否存在 config 和 models
     QDir resourceDir(resource_file_path);
-    if (!resourceDir.exists()) {
-        CF_LOG_INFO("Bundle Resources not found at: %s", resource_file_path.toStdString().c_str());
+    if (!resourceDir.exists("config") || !resourceDir.exists("models")) {
+        CF_LOG_INFO("config or models not found at: %s", resource_file_path.toStdString().c_str());
         // 开发模式：尝试使用项目根目录
         QDir dir(appDirPath);
         // 从 build/bin/xxx.app/Contents/MacOS 或 build/bin 向上找到项目根目录
         if (dir.cdUp() && dir.cdUp()) { // 尝试向上两级
-            if (dir.exists("Resources")) {
-                resource_file_path = dir.absolutePath() + "/Resources";
+            if (dir.exists("models") && dir.exists("config")) {
+                resource_file_path = dir.absolutePath();
                 CF_LOG_INFO("Using development resource path: %s", resource_file_path.toStdString().c_str());
-            } else if (dir.cdUp() && dir.exists("Resources")) {
+            } else if (dir.cdUp() && dir.exists("models") && dir.exists("config")) {
                 // 再向上一级尝试
-                resource_file_path = dir.absolutePath() + "/Resources";
+                resource_file_path = dir.absolutePath();
                 CF_LOG_INFO("Using development resource path (3 levels up): %s", resource_file_path.toStdString().c_str());
             }
         }
     }
     
-    // 最终验证：检查Resources目录是否真的存在且可访问
+    // 最终验证：检查资源目录是否真的存在且可访问
     QDir finalCheck(resource_file_path);
     if (!finalCheck.exists()) {
-        CF_LOG_ERROR("CRITICAL: Resources directory does not exist: %s", resource_file_path.toStdString().c_str());
+        CF_LOG_ERROR("CRITICAL: Resource directory does not exist: %s", resource_file_path.toStdString().c_str());
         CF_LOG_ERROR("Application will not be able to load any resources!");
         return false;
     }
     
     CF_LOG_INFO("Final resource path confirmed: %s", resource_file_path.toStdString().c_str());
-    CF_LOG_INFO("Resources directory exists: YES");
+    CF_LOG_INFO("Resource directory exists: YES");
     
-    // 列出Resources目录内容用于诊断
+    // 列出资源目录内容用于诊断
     QStringList resourceFiles = finalCheck.entryList(QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot);
-    CF_LOG_INFO("Resources directory contents: %s", resourceFiles.join(", ").toStdString().c_str());
+    CF_LOG_INFO("Resource directory contents: %s", resourceFiles.join(", ").toStdString().c_str());
     
     // 验证config.json是否存在
-    QString configPath = resource_file_path + "/config.json";
+    QString configPath = resource_file_path + "/config/config.json";
     QFile file(configPath);
     
     if (!QFile::exists(configPath)) {
@@ -307,7 +305,7 @@ const QVector<resource_loader::model> &resource_loader::get_model_list() {
 }
 
 QString resource_loader::get_system_tray_icon_path() {
-    return resource_file_path + "/" + system_tray_icon_path;
+    return resource_file_path + "/config/" + system_tray_icon_path;
 }
 
 const resource_loader::model *resource_loader::get_current_model() {
@@ -351,7 +349,7 @@ void resource_loader::set_top(bool top) {
 }
 
 QString resource_loader::get_config_path() const {
-    return resource_file_path + "/config.json";
+    return resource_file_path + "/config/config.json";
 }
 
 const QString &resource_loader::get_gpt_url() const {

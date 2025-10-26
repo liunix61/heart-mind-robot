@@ -144,7 +144,7 @@ void LAppLive2DManager::OnUpdate() const {
 bool LAppLive2DManager::ChangeScene(const QString &name) {
     //_sceneIndex = index;
     CF_LOG_DEBUG("model : %s", name.toStdString().c_str());
-    QString modelPath = resource_loader::get_instance().get_resoures_path() + "/" + name + "/";
+    QString modelPath = resource_loader::get_instance().get_resoures_path() + "/models/live2d/" + name + "/";
     QString modelJsonName = name + ".model3.json";
     ReleaseAllModel();
     _models.PushBack(new LAppModel());

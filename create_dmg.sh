@@ -69,18 +69,20 @@ cp -R "$APP_BUNDLE" "$DIST_DIR/"
 echo_info "复制资源文件..."
 DIST_RESOURCES="$DIST_DIR/${APP_NAME}.app/Contents/Resources"
 
-# 复制 Resources 目录（配置文件、模型等）
-if [ -d "$PROJECT_ROOT/Resources" ]; then
-    echo_info "  -> 复制 Resources 目录"
-    cp -R "$PROJECT_ROOT/Resources/"* "$DIST_RESOURCES/" 2>/dev/null || true
-fi
-
-# 复制 models 目录
+# 复制 models 目录（Live2D模型和AI模型）
 if [ -d "$PROJECT_ROOT/models" ]; then
     echo_info "  -> 复制 models 目录"
-    mkdir -p "$DIST_RESOURCES/models"
-    cp -R "$PROJECT_ROOT/models/"* "$DIST_RESOURCES/models/" 2>/dev/null || true
+    mkdir -p "$DIST_DIR/${APP_NAME}.app/Contents/models"
+    cp -R "$PROJECT_ROOT/models/"* "$DIST_DIR/${APP_NAME}.app/Contents/models/" 2>/dev/null || true
 fi
+
+# 复制 config 目录（配置文件）
+if [ -d "$PROJECT_ROOT/config" ]; then
+    echo_info "  -> 复制 config 目录"
+    mkdir -p "$DIST_DIR/${APP_NAME}.app/Contents/config"
+    cp -R "$PROJECT_ROOT/config/"* "$DIST_DIR/${APP_NAME}.app/Contents/config/" 2>/dev/null || true
+fi
+
 
 # 复制第三方库
 echo_info "复制第三方动态库..."

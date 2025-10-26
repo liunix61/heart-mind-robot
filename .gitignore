@@ -42,6 +42,7 @@ Resources
 
 cache/
 build/
-models/
+models/ai/
+config/
 py-xiaozhi/
 version2.1/
