@@ -165,6 +165,7 @@ if(WIN32)
         ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/mainwindow.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/AudioPermission.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/GlobalHotkey.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/app.rc
     )
 elseif(APPLE)

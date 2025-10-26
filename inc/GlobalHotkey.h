@@ -11,9 +11,13 @@
 #include <Carbon/Carbon.h>
 #elif defined(_WIN32)
 #include <windows.h>
+#include <QAbstractNativeEventFilter>
 #endif
 
 class GlobalHotkey : public QObject
+#ifdef _WIN32
+    , public QAbstractNativeEventFilter
+#endif
 {
     Q_OBJECT
 
@@ -26,6 +30,11 @@ public:
     
     // 注销全局热键
     void unregisterHotkey();
+
+#ifdef _WIN32
+    // Windows原生事件过滤器
+    bool nativeEventFilter(const QByteArray &eventType, void *message, qintptr *result) override;
+#endif
 
 signals:
     // 热键被按下
@@ -44,8 +53,6 @@ private:
                                    void *userData);
 #elif defined(_WIN32)
     int m_hotkeyId;
-    // Windows热键回调
-    static LRESULT CALLBACK hotkeyHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 #endif
     bool m_registered;
 };
