@@ -45,3 +45,7 @@ build/
 models/ai/
 py-xiaozhi/
 version2.1/
+
+# 忽略所有 live2d 模型，但保留 Haru
+models/live2d/*
+!models/live2d/Haru/

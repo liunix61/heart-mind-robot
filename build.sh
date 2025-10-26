@@ -67,6 +67,115 @@ if [ "$ARCH" = "auto" ]; then
     echo "自动检测架构: $ARCH"
 fi
 
+# 确保必需的目录和文件存在
+echo "检查必需的目录和配置文件..."
+if [ ! -d "config" ]; then
+    echo "创建 config 目录..."
+    mkdir -p config
+fi
+
+# 复制 config 目录下的所有配置文件
+echo "检查并复制配置文件..."
+config_copied=0
+
+# 从 dist 目录复制配置文件
+if [ -d "dist/HeartMindRobot.app/Contents/Resources" ]; then
+    for ext in json png icns; do
+        for file in dist/HeartMindRobot.app/Contents/Resources/*.$ext; do
+            if [ -f "$file" ]; then
+                filename=$(basename "$file")
+                if [ ! -f "config/$filename" ]; then
+                    echo "  从 dist 复制: $filename"
+                    cp "$file" "config/$filename"
+                    ((config_copied++))
+                fi
+            fi
+        done
+    done
+fi
+
+# 从 Resources 目录复制资源文件到 config 目录
+if [ -d "Resources" ]; then
+    for ext in json png icns; do
+        for file in Resources/*.$ext; do
+            if [ -f "$file" ]; then
+                filename=$(basename "$file")
+                if [ ! -f "config/$filename" ]; then
+                    echo "  从 Resources 复制: $filename"
+                    cp "$file" "config/$filename"
+                    ((config_copied++))
+                fi
+            fi
+        done
+    done
+fi
+
+# 如果没有找到 config.json，创建一个默认的
+if [ ! -f "config/config.json" ]; then
+    echo "  警告: 未找到默认配置文件，创建空配置文件"
+    echo "{}" > config/config.json
+fi
+
+if [ $config_copied -eq 0 ]; then
+    echo "  所有配置文件已存在"
+else
+    echo "配置文件检查完成，共复制 $config_copied 个文件"
+fi
+
+# 确保 models/live2d 目录存在并包含所有模型
+if [ ! -d "models/live2d" ]; then
+    echo "创建 models/live2d 目录..."
+    mkdir -p models/live2d
+fi
+
+# 从 Resources 和 dist 目录复制缺失的模型到 models/live2d/
+echo "检查并复制模型文件..."
+copied_count=0
+
+# 首先从 Resources 目录复制
+if [ -d "Resources" ]; then
+    for model_dir in Resources/*/; do
+        model_name=$(basename "$model_dir")
+        
+        # 跳过非模型目录（没有 .model3.json 文件的目录）
+        if [ ! -f "${model_dir}${model_name}.model3.json" ]; then
+            continue
+        fi
+        
+        # 检查 models/live2d/ 下是否已存在该模型
+        if [ ! -d "models/live2d/${model_name}" ]; then
+            echo "  从 Resources 复制模型: ${model_name}"
+            cp -r "$model_dir" "models/live2d/${model_name}"
+            ((copied_count++))
+        fi
+    done
+fi
+
+# 然后从 dist 目录复制（处理 Haru 等特殊模型）
+if [ -d "dist/HeartMindRobot.app/Contents/Resources" ]; then
+    for model_dir in dist/HeartMindRobot.app/Contents/Resources/*/; do
+        model_name=$(basename "$model_dir")
+        
+        # 跳过非模型目录（没有 .model3.json 文件的目录）
+        if [ ! -f "${model_dir}${model_name}.model3.json" ]; then
+            continue
+        fi
+        
+        # 检查 models/live2d/ 下是否已存在该模型
+        if [ ! -d "models/live2d/${model_name}" ]; then
+            echo "  从 dist 复制模型: ${model_name}"
+            cp -r "$model_dir" "models/live2d/${model_name}"
+            ((copied_count++))
+        fi
+    done
+fi
+
+if [ $copied_count -eq 0 ]; then
+    echo "  所有模型已存在，无需复制"
+else
+    echo "模型文件检查完成，共复制 $copied_count 个模型"
+fi
+
 # 清理旧的构建目录
 if [ -d "$BUILD_DIR" ]; then
     echo "清理旧的构建目录..."
