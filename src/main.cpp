@@ -16,46 +16,6 @@
 
 /// TODO 官方框架自带的json解析器似乎有问题，时而崩溃？需要排查一下。还有动画播放卡顿（Idle结束的时候）
 
-bool checkActivationStatus() {
-    // 简化版本，直接返回true（已激活）
-    qDebug() << "Checking activation status: true";
-    return true;
-}
-
-bool showActivationDialog(QApplication& app) {
-    qDebug() << "Creating SimpleActivationWindow...";
-    
-    // 创建SystemInitializer来获取真正的激活数据
-    SystemInitializer* initializer = new SystemInitializer();
-    QJsonObject initResult = initializer->runInitialization();
-    
-    QJsonObject activationData;
-    if (initResult.contains("activation_data")) {
-        activationData = initResult["activation_data"].toObject();
-        qDebug() << "Got activation data from server:" << activationData;
-    } else {
-        // 如果服务器没有返回激活数据，使用默认值
-        activationData["challenge"] = "default_challenge";
-        activationData["code"] = "123456";
-        activationData["message"] = "请在xiaozhi.me输入验证码";
-        qDebug() << "No activation data from server, using default";
-    }
-    
-    SimpleActivationWindow activationWindow(activationData);
-    qDebug() << "SimpleActivationWindow created, setting title...";
-    activationWindow.setWindowTitle("设备激活 - Live2D桌宠");
-    
-    qDebug() << "Showing activation window...";
-    // 显示激活窗口
-    int result = activationWindow.exec();
-    qDebug() << "Activation window closed with result:" << result;
-    
-    if (result == QDialog::Accepted) {
-        return activationWindow.isActivated();
-    }
-    
-    return false;
-}
 
 int main(int argc, char *argv[]) {
 #ifdef _WIN32
@@ -92,11 +52,61 @@ int main(int argc, char *argv[]) {
     // 检查是否跳过激活
     bool skipActivation = parser.isSet(skipActivationOption);
     
-    // 强制显示激活对话框进行测试
-    qDebug() << "Forcing activation dialog display for testing...";
-    if (!showActivationDialog(a)) {
-        qDebug() << "Activation failed or cancelled, exiting...";
-        return 1;
+    if (!skipActivation) {
+        qDebug() << "Checking activation status...";
+        
+        // 创建SystemInitializer并检查激活状态
+        SystemInitializer* initializer = new SystemInitializer();
+        QJsonObject initResult = initializer->runInitialization();
+        
+        // 检查是否需要激活
+        bool needActivation = initResult.value("need_activation_ui").toBool();
+        qDebug() << "Need activation UI:" << needActivation;
+        
+        if (needActivation) {
+            qDebug() << "Device not activated, showing activation dialog...";
+            
+            // 从初始化结果中获取激活数据
+            QJsonObject activationData;
+            if (initResult.contains("activation_data")) {
+                activationData = initResult["activation_data"].toObject();
+                qDebug() << "Got activation data from initResult:" << activationData;
+            } else {
+                // 如果没有激活数据，创建默认的激活数据
+                activationData["challenge"] = "default_challenge";
+                activationData["code"] = "123456";
+                activationData["message"] = "请在xiaozhi.me输入验证码";
+                qDebug() << "No activation data found, using default:" << activationData;
+            }
+            
+            // 直接创建激活窗口，不再重复初始化
+            SimpleActivationWindow activationWindow(activationData);
+            qDebug() << "SimpleActivationWindow created";
+            
+            // 连接激活完成信号
+            QObject::connect(&activationWindow, &SimpleActivationWindow::activationCompleted, 
+                             [&a](bool success) {
+                                 if (success) {
+                                     qDebug() << "Activation completed successfully";
+                                 } else {
+                                     qDebug() << "Activation failed or cancelled";
+                                 }
+                             });
+            
+            qDebug() << "Showing activation window...";
+            // 显示激活窗口
+            int result = activationWindow.exec();
+            qDebug() << "Activation window closed with result:" << result;
+            
+            if (result != QDialog::Accepted || !activationWindow.isActivated()) {
+                qDebug() << "Activation failed or cancelled, exiting...";
+                return 1;
+            }
+        } else {
+            qDebug() << "Device already activated, proceeding to main application...";
+        }
+    } else {
+        qDebug() << "Skipping activation process (debug mode)";
     }
     
     // 初始化资源加载器
