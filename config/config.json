@@ -41,7 +41,7 @@
             "width": 300
         }
     ],
-    "systemtray": "../Resources/AppIcon.png",
+    "systemtray": "../config/AppIcon.png",
     "userdata": {
         "current_model": "Mao",
         "dialog_height": 300,
