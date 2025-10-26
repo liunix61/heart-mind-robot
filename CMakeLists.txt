@@ -194,19 +194,24 @@ if(APPLE)
         RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
     )
     
-    # 复制models和config目录到应用包（用于开发测试）
+    # 复制models、config和Resources目录到应用包（用于开发测试）
     add_custom_command(TARGET HeartMindRobot POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E make_directory 
             $<TARGET_FILE_DIR:HeartMindRobot>/../models
         COMMAND ${CMAKE_COMMAND} -E make_directory 
             $<TARGET_FILE_DIR:HeartMindRobot>/../config
+        COMMAND ${CMAKE_COMMAND} -E make_directory 
+            $<TARGET_FILE_DIR:HeartMindRobot>/../Resources
         COMMAND ${CMAKE_COMMAND} -E copy_directory
             ${CMAKE_CURRENT_SOURCE_DIR}/models
             $<TARGET_FILE_DIR:HeartMindRobot>/../models
         COMMAND ${CMAKE_COMMAND} -E copy_directory
             ${CMAKE_CURRENT_SOURCE_DIR}/config
             $<TARGET_FILE_DIR:HeartMindRobot>/../config
-        COMMENT "Copying models and config directories to app bundle for development"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            ${CMAKE_CURRENT_SOURCE_DIR}/Resources
+            $<TARGET_FILE_DIR:HeartMindRobot>/../Resources
+        COMMENT "Copying models, config and Resources directories to app bundle for development"
     )
 else()
     add_executable(HeartMindRobot ${PLATFORM_SOURCES})

@@ -94,19 +94,18 @@ if [ -d "dist/HeartMindRobot.app/Contents/Resources" ]; then
     done
 fi
 
-# 从 Resources 目录复制资源文件到 config 目录
+# 从 Resources 目录只复制 json 配置文件到 config 目录
+# 图标文件（png, icns）保留在 Resources 目录，不复制到 config
 if [ -d "Resources" ]; then
-    for ext in json png icns; do
-        for file in Resources/*.$ext; do
-            if [ -f "$file" ]; then
-                filename=$(basename "$file")
-                if [ ! -f "config/$filename" ]; then
-                    echo "  从 Resources 复制: $filename"
-                    cp "$file" "config/$filename"
-                    ((config_copied++))
-                fi
+    for file in Resources/*.json; do
+        if [ -f "$file" ]; then
+            filename=$(basename "$file")
+            if [ ! -f "config/$filename" ]; then
+                echo "  从 Resources 复制: $filename"
+                cp "$file" "config/$filename"
+                ((config_copied++))
             fi
-        done
+        fi
     done
 fi
 
