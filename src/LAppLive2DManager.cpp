@@ -14,8 +14,8 @@
 #include "LAppDelegate.hpp"
 #include "LAppModel.hpp"
 #include "LAppView.hpp"
-#include "resource_loader.hpp"
-#include "event_handler.hpp"
+#include "ResourceLoader.hpp"
+#include "EventHandler.hpp"
 
 using namespace Csm;
 using namespace LAppDefine;

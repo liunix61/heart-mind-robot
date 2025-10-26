@@ -1,5 +1,5 @@
 #include "AudioInputManager.hpp"
-#include "AudioPermission.h"
+#include "AudioPermission.hpp"
 #include <QDebug>
 #include <cstring>
 #include <portaudio.h>

@@ -1,8 +1,8 @@
 #include "MouseEvent.h"
 #include "LAppDelegate.hpp"
 #include "Log_util.h"
-#include "resource_loader.hpp"
-#include "platform_config.h"
+#include "ResourceLoader.hpp"
+#include "PlatformConfig.hpp"
 
 // 全局变量用于Windows Hook
 WINDOWS_SPECIFIC(

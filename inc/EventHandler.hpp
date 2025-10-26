@@ -3,9 +3,9 @@
 
 #include <QMainWindow>
 #include <QEvent>
-#include "message_queue.hpp"
+#include "MessageQueue.hpp"
 #include <thread>
-#include "resource_loader.hpp"
+#include "ResourceLoader.hpp"
 #include "Log_util.h"
 #include <QApplication>
 

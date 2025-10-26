@@ -5,8 +5,8 @@
 #include "./ui_mainwindow.h"
 #include "Log_util.h"
 #include "LAppLive2DManager.hpp"
-#include "resource_loader.hpp"
-#include "event_handler.hpp"
+#include "ResourceLoader.hpp"
+#include "EventHandler.hpp"
 #include <QMessageBox>
 #include <QMouseEvent>
 #include <QtGui/QGuiApplication>

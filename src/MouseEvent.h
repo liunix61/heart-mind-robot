@@ -2,7 +2,7 @@
 #define MOUSEEVENT_H
 #include "GL/glew.h"
 #include <QtGui/QWindow>
-#include "platform_config.h"
+#include "PlatformConfig.hpp"
 
 class MouseEventHandle : public QObject {
 public:

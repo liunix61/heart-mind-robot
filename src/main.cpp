@@ -1,6 +1,6 @@
 #include "mainwindow.h"
-#include "event_handler.hpp"
-#include "resource_loader.hpp"
+#include "EventHandler.hpp"
+#include "ResourceLoader.hpp"
 #include "SimpleActivationWindow.h"
 #include "DeskPetIntegration.h"
 #include "SystemInitializer.h"
@@ -8,7 +8,7 @@
 #include <QMessageBox>
 #include <QCommandLineParser>
 #include "MouseEvent.h"
-#include "platform_config.h"
+#include "PlatformConfig.hpp"
 
 #ifdef _WIN32
 #include <windows.h>

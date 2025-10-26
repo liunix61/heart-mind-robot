@@ -1,6 +1,6 @@
 ﻿#include "mainwindow.h"
-#include "event_handler.hpp"
-#include "resource_loader.hpp"
+#include "EventHandler.hpp"
+#include "ResourceLoader.hpp"
 #include "SimpleActivationWindow.h"
 #include "SystemInitializer.h"
 #include "DeviceFingerprint.h"

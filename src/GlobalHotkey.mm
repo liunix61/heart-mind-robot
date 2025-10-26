@@ -2,7 +2,7 @@
 // 全局热键管理器实现 - macOS
 //
 
-#include "GlobalHotkey.h"
+#include "GlobalHotkey.hpp"
 #include <QDebug>
 
 // 热键ID

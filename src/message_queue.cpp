@@ -1,4 +1,4 @@
-﻿#include "message_queue.hpp"
+﻿#include "MessageQueue.hpp"
 
 namespace {
     constexpr int message_max_size = 32;

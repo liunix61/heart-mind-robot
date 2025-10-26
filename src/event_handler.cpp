@@ -1,4 +1,4 @@
-﻿#include "event_handler.hpp"
+﻿#include "EventHandler.hpp"
 
 namespace {
     const QEvent::Type mtype = (QEvent::Type) QEvent::registerEventType();

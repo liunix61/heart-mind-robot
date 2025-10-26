@@ -18,7 +18,7 @@
 #include <QJsonDocument>
 #include "ChatDialog.h"
 #include <CubismFramework.hpp>
-#include "resource_loader.hpp"
+#include "ResourceLoader.hpp"
 #include "LAppLive2DManager.hpp"
 
 #define VoiceAPI "https://genshinvoice.top/api"

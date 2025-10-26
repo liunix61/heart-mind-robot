@@ -1,6 +1,6 @@
 #include "AudioUtil.h"
 #include "Log_util.h"
-#include "platform_config.h"
+#include "PlatformConfig.hpp"
 #include "PortAudioEngine.h"
 
 #ifdef _WIN32

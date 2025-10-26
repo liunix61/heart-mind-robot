@@ -1,4 +1,4 @@
-#include "AudioPermission.h"
+#include "AudioPermission.hpp"
 #include <QCoreApplication>
 #include <QDebug>
 

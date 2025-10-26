@@ -16,9 +16,9 @@
 #include <QScrollArea>
 #include <QScrollBar>
 #include <memory>
-#include "resource_loader.hpp"
+#include "ResourceLoader.hpp"
 #include "AudioInputManager.hpp"
-#include "GlobalHotkey.h"
+#include "GlobalHotkey.hpp"
 
 class DeskPetIntegration;
 

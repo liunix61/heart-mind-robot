@@ -16,7 +16,7 @@
 #include <QNetworkReply>
 #include <QObject>
 #include <QScrollArea>
-#include "resource_loader.hpp"
+#include "ResourceLoader.hpp"
 #include "Networkutil.h"
 #include <QScrollBar>
 class NetworkManager;

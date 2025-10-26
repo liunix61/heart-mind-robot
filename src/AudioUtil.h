@@ -2,7 +2,7 @@
 #define AUDIOUTIL_H
 
 #include "Log_util.h"
-#include "platform_config.h"
+#include "PlatformConfig.hpp"
 #include <QByteArray>
 #include <QThread>
 #include <QMutex>

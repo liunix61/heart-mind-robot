@@ -147,7 +147,7 @@ set(COMMON_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/WebRTCAudioProcessor.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/AudioInputManager.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/inc/AudioInputManager.hpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/inc/GlobalHotkey.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/inc/GlobalHotkey.hpp
 )
 
 # macOS特定源文件（需要Objective-C++）

@@ -1,6 +1,6 @@
 ﻿#include "Log_util.h"
-#include "resource_loader.hpp"
-#include "event_handler.hpp"
+#include "ResourceLoader.hpp"
+#include "EventHandler.hpp"
 
 namespace {
     constexpr int config_file_size = 4096;

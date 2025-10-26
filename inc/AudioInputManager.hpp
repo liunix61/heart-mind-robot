@@ -4,7 +4,7 @@
 #include <QObject>
 #include <QByteArray>
 #include <memory>
-#include "platform_config.h"
+#include "PlatformConfig.hpp"
 
 // 所有平台都使用PortAudio
 #include <portaudio.h>

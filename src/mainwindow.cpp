@@ -4,8 +4,8 @@
 #include "./ui_mainwindow.h"
 #include "Log_util.h"
 #include "LAppLive2DManager.hpp"
-#include "resource_loader.hpp"
-#include "event_handler.hpp"
+#include "ResourceLoader.hpp"
+#include "EventHandler.hpp"
 #include <QMessageBox>
 #include <QMouseEvent>
 #include <QtGui/QGuiApplication>
@@ -13,7 +13,7 @@
 #include "qactiongroup.h"
 #include <QMenuBar>
 #include "MouseEvent.h"
-#include "platform_config.h" // 这个文件头不能放到mainwindow.h中，否则会报错
+#include "PlatformConfig.hpp" // 这个文件头不能放到mainwindow.h中，否则会报错
 #include <QThread>
 
 namespace {

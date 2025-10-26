@@ -2,7 +2,7 @@
 // 全局热键管理器实现 - Windows
 //
 
-#include "GlobalHotkey.h"
+#include "GlobalHotkey.hpp"
 #include <QDebug>
 #include <QApplication>
 #include <QAbstractNativeEventFilter>

@@ -10,7 +10,7 @@
 #include <CubismFramework.hpp>
 #include <Utils/CubismString.hpp>
 #include "QByteArray"
-#include "event_handler.hpp"
+#include "EventHandler.hpp"
  /**
   * @brief wavファイルハンドラ
   * @attention 16bit wav ファイル読み込みのみ実装済み
