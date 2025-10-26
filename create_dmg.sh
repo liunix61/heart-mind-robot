@@ -285,9 +285,9 @@ fi
 echo_info "创建 DMG 文件..."
 
 # 添加卷图标到临时目录
-if [ -f "$PROJECT_ROOT/AppIcon.icns" ]; then
+if [ -f "$PROJECT_ROOT/Resources/AppIcon.icns" ]; then
     echo_info "  -> 添加 DMG 卷图标"
-    cp "$PROJECT_ROOT/AppIcon.icns" "$DMG_TEMP/.VolumeIcon.icns"
+    cp "$PROJECT_ROOT/Resources/AppIcon.icns" "$DMG_TEMP/.VolumeIcon.icns"
     # 使用 SetFile 设置图标属性（如果可用）
     if command -v SetFile &> /dev/null; then
         SetFile -c icnC "$DMG_TEMP/.VolumeIcon.icns" 2>/dev/null || true

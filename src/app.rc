@@ -1,7 +1,7 @@
 #include <windows.h>
 
 // 应用程序图标资源
-IDI_ICON1 ICON "AppIcon.ico"
+IDI_ICON1 ICON "../Resources/AppIcon.ico"
 
 // 版本信息
 VS_VERSION_INFO VERSIONINFO

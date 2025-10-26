@@ -183,7 +183,7 @@ endif()
 if(APPLE)
     # 设置应用图标
     set(MACOSX_BUNDLE_ICON_FILE AppIcon.icns)
-    set(APP_ICON_MACOS ${CMAKE_CURRENT_SOURCE_DIR}/AppIcon.icns)
+    set(APP_ICON_MACOS ${CMAKE_CURRENT_SOURCE_DIR}/Resources/AppIcon.icns)
     set_source_files_properties(${APP_ICON_MACOS} PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
     
     add_executable(HeartMindRobot MACOSX_BUNDLE ${PLATFORM_SOURCES} ${APP_ICON_MACOS})
