@@ -9,7 +9,7 @@
 #include <cmath>
 #include <cstdint>
 #include "LAppPal.hpp"
-#include "Log_util.h"
+#include "LogUtil.h"
 #include "AudioUtil.h"
 
 LAppWavFileHandler::LAppWavFileHandler()

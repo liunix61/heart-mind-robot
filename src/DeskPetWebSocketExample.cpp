@@ -20,7 +20,7 @@
 #include <QThread>
 
 #include "DeskPetIntegration.h"
-#include "mainwindow.h"
+#include "MainWindow.h"
 
 class DeskPetWebSocketExample : public QMainWindow
 {

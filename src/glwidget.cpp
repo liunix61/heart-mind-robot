@@ -1,7 +1,7 @@
 ﻿#include <GL/glew.h> // glew must put first,and can not include QtOpenGL
 #include <QtGui>
 #include "LAppDelegate.hpp"
-#include "glwidget.h"
+#include "GlWidget.h"
 #include <QApplication>
 #include "QtOpenGLWidgets/QOpenGLWidget"
 

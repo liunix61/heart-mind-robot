@@ -122,11 +122,11 @@ set(COMMON_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/LAppTextureManager.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/LAppView.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/TouchManager.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/glwidget.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/event_handler.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/message_queue.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/resource_loader.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/Networkutil.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/GlWidget.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/EventHandler.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/MessageQueue.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/ResourceLoader.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/NetworkUtil.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/ChatDialog.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/SimpleActivationWindow.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/DeviceFingerprint.cpp
@@ -163,7 +163,7 @@ if(WIN32)
         ${CMAKE_CURRENT_SOURCE_DIR}/src/AudioUtil.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/MouseEvent.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/mainwindow.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/MainWindow.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/AudioPermission.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/GlobalHotkey.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/app.rc

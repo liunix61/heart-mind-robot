@@ -17,7 +17,7 @@
 #include <QObject>
 #include <QScrollArea>
 #include "ResourceLoader.hpp"
-#include "Networkutil.h"
+#include "NetworkUtil.h"
 #include <QScrollBar>
 class NetworkManager;
 class ChatDialog : public QDialog {

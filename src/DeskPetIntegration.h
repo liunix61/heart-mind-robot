@@ -7,7 +7,7 @@
 #include <QString>
 #include <QByteArray>
 #include "DeskPetController.h"
-#include "mainwindow.h"
+#include "MainWindow.h"
 #include "LAppLive2DManager.hpp"
 #include "AudioUtil.h"
 

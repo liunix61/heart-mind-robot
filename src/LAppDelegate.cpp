@@ -13,7 +13,7 @@
 #include "LAppDefine.hpp"
 #include "LAppLive2DManager.hpp"
 #include "LAppTextureManager.hpp"
-#include "Log_util.h"
+#include "LogUtil.h"
 
 using namespace Csm;
 using namespace std;

@@ -2,8 +2,8 @@
 // Created by 高煜焜 on 2023/11/5.
 //
 
-#include "Networkutil.h"
-#include "Log_util.h"
+#include "NetworkUtil.h"
+#include "LogUtil.h"
 
 NetworkManager::NetworkManager(QObject *parent) : QObject(parent) {
 

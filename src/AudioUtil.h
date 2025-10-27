@@ -1,7 +1,7 @@
 #ifndef AUDIOUTIL_H
 #define AUDIOUTIL_H
 
-#include "Log_util.h"
+#include "LogUtil.h"
 #include "PlatformConfig.hpp"
 #include <QByteArray>
 #include <QThread>

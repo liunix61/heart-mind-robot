@@ -1,4 +1,4 @@
-﻿#include "Log_util.h"
+﻿#include "LogUtil.h"
 #include "ResourceLoader.hpp"
 #include "EventHandler.hpp"
 

@@ -13,19 +13,19 @@ target_sources(HeartMindRobot
       ${CMAKE_CURRENT_SOURCE_DIR}/LAppView.cpp
       ${CMAKE_CURRENT_SOURCE_DIR}/main.mm
       ${CMAKE_CURRENT_SOURCE_DIR}/TouchManager.cpp
-      ${CMAKE_CURRENT_SOURCE_DIR}/glwidget.cpp
-      ${CMAKE_CURRENT_SOURCE_DIR}/glwidget.h
-      ${CMAKE_CURRENT_SOURCE_DIR}/event_handler.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/mainwindow.mm
-      ${CMAKE_CURRENT_SOURCE_DIR}/mainwindow.h
-      ${CMAKE_CURRENT_SOURCE_DIR}/mainwindow.ui
-      ${CMAKE_CURRENT_SOURCE_DIR}/message_queue.cpp
-      ${CMAKE_CURRENT_SOURCE_DIR}/resource_loader.cpp
+      ${CMAKE_CURRENT_SOURCE_DIR}/GlWidget.cpp
+      ${CMAKE_CURRENT_SOURCE_DIR}/GlWidget.h
+      ${CMAKE_CURRENT_SOURCE_DIR}/EventHandler.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/MainWindow.mm
+      ${CMAKE_CURRENT_SOURCE_DIR}/MainWindow.h
+      ${CMAKE_CURRENT_SOURCE_DIR}/MainWindow.ui
+      ${CMAKE_CURRENT_SOURCE_DIR}/MessageQueue.cpp
+      ${CMAKE_CURRENT_SOURCE_DIR}/ResourceLoader.cpp
       ${CMAKE_CURRENT_SOURCE_DIR}/TouchManager.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/AudioUtil.h
         ${CMAKE_CURRENT_SOURCE_DIR}/AudioUtil.mm
-        ${CMAKE_CURRENT_SOURCE_DIR}/Networkutil.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/Networkutil.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/NetworkUtil.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/NetworkUtil.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/ChatDialog.h
         ${CMAKE_CURRENT_SOURCE_DIR}/ChatDialog.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/MouseEvent.mm
@@ -55,21 +55,21 @@ target_sources(HeartMindRobot
       ${CMAKE_CURRENT_SOURCE_DIR}/LAppView.cpp
       ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp
       ${CMAKE_CURRENT_SOURCE_DIR}/TouchManager.cpp
-      ${CMAKE_CURRENT_SOURCE_DIR}/glwidget.cpp
-      ${CMAKE_CURRENT_SOURCE_DIR}/glwidget.h
-      ${CMAKE_CURRENT_SOURCE_DIR}/event_handler.cpp
-      ${CMAKE_CURRENT_SOURCE_DIR}/mainwindow.cpp
-      ${CMAKE_CURRENT_SOURCE_DIR}/mainwindow.h
-      ${CMAKE_CURRENT_SOURCE_DIR}/mainwindow.ui
-      ${CMAKE_CURRENT_SOURCE_DIR}/message_queue.cpp
-      ${CMAKE_CURRENT_SOURCE_DIR}/resource_loader.cpp
+      ${CMAKE_CURRENT_SOURCE_DIR}/GlWidget.cpp
+      ${CMAKE_CURRENT_SOURCE_DIR}/GlWidget.h
+      ${CMAKE_CURRENT_SOURCE_DIR}/EventHandler.cpp
+      ${CMAKE_CURRENT_SOURCE_DIR}/MainWindow.cpp
+      ${CMAKE_CURRENT_SOURCE_DIR}/MainWindow.h
+      ${CMAKE_CURRENT_SOURCE_DIR}/MainWindow.ui
+      ${CMAKE_CURRENT_SOURCE_DIR}/MessageQueue.cpp
+      ${CMAKE_CURRENT_SOURCE_DIR}/ResourceLoader.cpp
       ${CMAKE_CURRENT_SOURCE_DIR}/TouchManager.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/AudioUtil.h
         ${CMAKE_CURRENT_SOURCE_DIR}/AudioUtil.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/OpusDecoder.h
         ${CMAKE_CURRENT_SOURCE_DIR}/OpusDecoder.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/Networkutil.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/Networkutil.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/NetworkUtil.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/NetworkUtil.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/ChatDialog.h
         ${CMAKE_CURRENT_SOURCE_DIR}/ChatDialog.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/WebSocketChatDialog.h

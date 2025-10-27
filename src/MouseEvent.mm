@@ -2,7 +2,7 @@
 #import "MouseEvent.h"
 #import <Cocoa/Cocoa.h>
 #include "LAppDelegate.hpp"
-#include "Log_util.h"
+#include "LogUtil.h"
 
 void MouseEventHandle::EnableMousePassThrough(WId windowId, bool enable) {
     auto qtNSView = reinterpret_cast<NSView *> (windowId);

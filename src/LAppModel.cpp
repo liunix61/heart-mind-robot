@@ -18,7 +18,7 @@
 #include "LAppDefine.hpp"
 #include "LAppPal.hpp"
 #include "LAppTextureManager.hpp"
-#include "Log_util.h"
+#include "LogUtil.h"
 #include "LAppDelegate.hpp"
 #define DRAG_SCALE 0.3f
 using namespace Live2D::Cubism::Framework;

@@ -1,5 +1,5 @@
-﻿#ifndef LOG_UTIL_H
-#define LOG_UTIL_H
+﻿#ifndef LOGUTIL_H
+#define LOGUTIL_H
 
 #include <qdebug.h>
 
@@ -21,4 +21,4 @@
 #define CF_LOG_ERROR(fmt, ...) qDebug("[%s,%d] ERROR:" fmt "\n",__PRETTY_FUNCTION__,__LINE__,##__VA_ARGS__)
 #endif
 
-#endif //  LOG_UTIL_H
+#endif // LOGUTIL_H

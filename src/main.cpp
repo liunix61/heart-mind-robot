@@ -1,4 +1,4 @@
-#include "mainwindow.h"
+#include "MainWindow.h"
 #include "EventHandler.hpp"
 #include "ResourceLoader.hpp"
 #include "SimpleActivationWindow.h"

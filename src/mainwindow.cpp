@@ -1,8 +1,8 @@
-#include "mainwindow.h"
+#include "MainWindow.h"
 #include "WebSocketChatDialog.h"
 #include <QMenu>
-#include "./ui_mainwindow.h"
-#include "Log_util.h"
+#include "./ui_MainWindow.h"
+#include "LogUtil.h"
 #include "LAppLive2DManager.hpp"
 #include "ResourceLoader.hpp"
 #include "EventHandler.hpp"
