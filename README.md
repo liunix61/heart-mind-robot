@@ -313,7 +313,7 @@ lldb ./bin/HeartMindRobot.app/Contents/MacOS/HeartMindRobot
 - **[Qt](https://www.qt.io/)** - 跨平台开发框架
 - **[PortAudio](http://www.portaudio.com/)** - 音频库
 - **[Opus Codec](https://www.opus-codec.org/)** - 音频编解码
-- *[Macos_live2d_deskpet](https://github.com/kun4399/Macos_live2d_deskpet/)** - live2d桌宠项目客户端
+- **[Macos_live2d_deskpet](https://github.com/kun4399/Macos_live2d_deskpet/)** - live2d桌宠项目客户端
 ### 特别鸣谢
 
 感谢所有为本项目提供支持的个人和组织：
