@@ -10,7 +10,7 @@
 
 ## 项目简介
 
-Heart Mind Robot 是一个基于 Live2D 的智能桌面宠物应用，支持 AI 语音交互和实时通信。通过集成 小智AI 后端，实现自然流畅的语音对话体验。项目是骇客大赛参赛项目，仅限研究学习使用。
+pc-xiaozhi 是一个基于 Live2D 的智能桌面宠物应用，支持 AI 语音交互和实时通信。通过集成 小智AI 后端，实现自然流畅的语音对话体验。项目是骇客大赛参赛项目，仅限研究学习使用。
 
 ## 功能特点
 
@@ -110,7 +110,7 @@ brew install qt6 portaudio opus cmake
 ### 克隆项目
 
 ```bash
-git clone https://github.com/your-repo/heart-mind-robot.git
+git clone https://github.com/your-repo/pc-xiaozhi.git
 cd heart-mind-robot
 ```
 
@@ -210,7 +210,7 @@ cmake --build . --config Release
 ### 项目结构
 
 ```
-heart-mind-robot/
+pc-xiaozhi/
 ├── CMakeLists.txt              # CMake 构建配置
 ├── build.sh / build.bat        # 构建脚本
 ├── config/                     # 配置文件
